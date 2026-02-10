@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Subash Nepal — Portfolio</title>
+    <meta name="description"
+        content="Portfolio of Subash Nepal — Computer Programmer, Startup Founder, and Tech Enthusiast." />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        dark: { 900: '#0a0a0f', 800: '#12121a', 700: '#1a1a2e', 600: '#252540' },
+                        accent: { 400: '#7c3aed', 500: '#6d28d9', 600: '#5b21b6' },
+                        cyan: { 400: '#22d3ee', 500: '#06b6d4' },
+                        emerald: { 400: '#34d399', 500: '#10b981' },
+                    },
+                },
+            },
+        };
+    </script>
+
+    <!-- GSAP + ScrollTrigger -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* ── Base ────────────────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #0a0a0f;
+            color: #e2e8f0;
+        }
+
+        body {
+            overflow-x: hidden;
+        }
+
+        ::selection {
+            background: rgba(124, 58, 237, .4);
+            color: #fff;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #12121a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #7c3aed;
+            border-radius: 99px;
+        }
+
+        /* ── Glassmorphism utility ──────────────────── */
+        .glass {
+            background: rgba(18, 18, 26, .55);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, .06);
+        }
+
+        .glass-card {
+            background: rgba(18, 18, 26, .45);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .07);
+            border-radius: 1rem;
+            transition: transform .35s cubic-bezier(.4, 0, .2, 1), box-shadow .35s cubic-bezier(.4, 0, .2, 1), border-color .35s;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 20px 50px rgba(124, 58, 237, .15);
+            border-color: rgba(124, 58, 237, .25);
+        }
+
+        /* ── Glow on skill icons ──────────────────── */
+        .skill-icon {
+            transition: transform .3s, filter .3s, box-shadow .3s;
+        }
+
+        .skill-icon:hover {
+            transform: scale(1.15);
+            filter: drop-shadow(0 0 12px rgba(124, 58, 237, .55));
+            box-shadow: 0 0 24px rgba(124, 58, 237, .25);
+        }
+
+        /* ── Progress bar fill animation ──────────── */
+        .progress-fill {
+            width: 0;
+            transition: width 1.2s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        /* ── Typewriter cursor ────────────────────── */
+        .cursor {
+            display: inline-block;
+            width: 3px;
+            height: 1.1em;
+            background: #7c3aed;
+            margin-left: 4px;
+            animation: blink .7s steps(1) infinite;
+            vertical-align: text-bottom;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        /* ── Motion Blur helper class ─────────────── */
+        .motion-blur {
+            filter: blur(0px);
+            transition: filter .15s;
+        }
+
+        .motion-blur.blurring {
+            filter: blur(4px);
+        }
+
+        /* ── Ambient gradient orbs ────────────────── */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: .18;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Section reveal base ─────────────────── */
+        .reveal {
+            opacity: 0;
+            transform: translateY(60px);
+        }
+
+        /* ── Nav link active indicator ────────────── */
+        .nav-link {
+            position: relative;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #7c3aed, #22d3ee);
+            border-radius: 99px;
+            transition: width .3s;
+        }
+
+        .nav-link:hover::after,
+        .nav-link.active::after {
+            width: 70%;
+        }
+
+        /* ── Badge style ─────────────────────────── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: .8rem;
+            font-weight: 500;
+            background: rgba(124, 58, 237, .12);
+            color: #c4b5fd;
+            border: 1px solid rgba(124, 58, 237, .18);
+            transition: background .3s, transform .2s;
+        }
+
+        .badge:hover {
+            background: rgba(124, 58, 237, .22);
+            transform: translateY(-2px);
+        }
+
+        /* ── Floating dots bg ────────────────────── */
+        .dot-grid {
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(255, 255, 255, .04) 1px, transparent 1px);
+            background-size: 32px 32px;
+            pointer-events: none;
+        }
+
+        /* ── Button styles ───────────────────────── */
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: #fff;
+            font-weight: 600;
+            font-size: .95rem;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform .25s, box-shadow .25s;
+            text-decoration: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(124, 58, 237, .35);
+        }
+
+        .btn-outline {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 32px;
+            background: transparent;
+            color: #c4b5fd;
+            font-weight: 600;
+            font-size: .95rem;
+            border: 1.5px solid rgba(124, 58, 237, .4);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform .25s, background .25s, border-color .25s;
+            text-decoration: none;
+        }
+
+        .btn-outline:hover {
+            transform: translateY(-3px);
+            background: rgba(124, 58, 237, .1);
+            border-color: #7c3aed;
+        }
+
+        /* timeline */
+        .timeline-line {
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, #7c3aed, transparent);
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: 13px;
+            top: 6px;
+            width: 16px;
+            height: 16px;
+            background: #7c3aed;
+            border: 3px solid #0a0a0f;
+            border-radius: 50%;
+            z-index: 2;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ═══════════════════ NAVBAR ═══════════════════ -->
+    <nav id="navbar" class="glass fixed top-0 left-0 w-full z-50 transition-all duration-500">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="#home"
+                class="text-xl font-bold bg-gradient-to-r from-purple-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent tracking-tight">
+                &lt;SN /&gt;
+            </a>
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#home" class="nav-link text-sm font-medium text-gray-300 hover:text-white transition">Home</a>
+                <a href="#about"
+                    class="nav-link text-sm font-medium text-gray-300 hover:text-white transition">About</a>
+                <a href="#skills"
+                    class="nav-link text-sm font-medium text-gray-300 hover:text-white transition">Skills</a>
+                <a href="#education"
+                    class="nav-link text-sm font-medium text-gray-300 hover:text-white transition">Education</a>
+                <a href="#experience"
+                    class="nav-link text-sm font-medium text-gray-300 hover:text-white transition">Experience</a>
+                <a href="#contact"
+                    class="nav-link text-sm font-medium text-gray-300 hover:text-white transition">Contact</a>
+            </div>
+            <!-- Mobile toggle -->
+            <button id="menuBtn" class="md:hidden text-gray-300 hover:text-white">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </div>
+        <!-- Mobile menu -->
+        <div id="mobileMenu" class="md:hidden hidden px-6 pb-4 space-y-3">
+            <a href="#home" class="block text-sm text-gray-300 hover:text-white transition">Home</a>
+            <a href="#about" class="block text-sm text-gray-300 hover:text-white transition">About</a>
+            <a href="#skills" class="block text-sm text-gray-300 hover:text-white transition">Skills</a>
+            <a href="#education" class="block text-sm text-gray-300 hover:text-white transition">Education</a>
+            <a href="#experience" class="block text-sm text-gray-300 hover:text-white transition">Experience</a>
+            <a href="#contact" class="block text-sm text-gray-300 hover:text-white transition">Contact</a>
+        </div>
+    </nav>
+
+    <!-- ═══════════════════ HERO ═══════════════════ -->
+    <section id="home" class="relative min-h-screen flex items-center justify-center overflow-hidden">
+        <div class="dot-grid"></div>
+        <div class="orb w-[500px] h-[500px] bg-purple-600 -top-40 -left-40"></div>
+        <div class="orb w-[400px] h-[400px] bg-cyan-500 bottom-0 right-0"></div>
+
+        <div class="relative z-10 text-center px-6 max-w-4xl mx-auto">
+            <div class="mb-6">
+                <span
+                    class="inline-block px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                    Welcome to my world
+                </span>
+            </div>
+            <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black leading-tight tracking-tight mb-4">
+                Hi, I'm <span
+                    class="bg-gradient-to-r from-purple-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent">Subash
+                    Nepal</span>
+            </h1>
+            <p class="text-xl sm:text-2xl text-gray-400 font-light mb-2">
+                I'm a <span id="typewriter" class="font-semibold text-white"></span><span class="cursor"></span>
+            </p>
+            <p class="text-gray-500 max-w-xl mx-auto mt-4 mb-10 leading-relaxed text-base">
+                Crafting digital experiences, building startups, and turning ideas into reality through code and
+                creativity.
+            </p>
+            <div class="flex flex-wrap justify-center gap-4">
+                <a href="#contact" class="btn-primary">
+                    <i data-lucide="send" class="w-4 h-4"></i> Get in Touch
+                </a>
+                <a href="#about" class="btn-outline">
+                    <i data-lucide="user" class="w-4 h-4"></i> About Me
+                </a>
+            </div>
+
+            <!-- scroll indicator -->
+            <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50">
+                <span class="text-xs tracking-widest uppercase text-gray-500">Scroll</span>
+                <div class="w-5 h-9 border-2 border-gray-600 rounded-full flex justify-center pt-1.5">
+                    <div class="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════ ABOUT ═══════════════════ -->
+    <section id="about" class="relative py-28 px-6 motion-blur">
+        <div class="dot-grid"></div>
+        <div class="orb w-[350px] h-[350px] bg-emerald-500 top-20 right-10"></div>
+        <div class="max-w-6xl mx-auto relative z-10">
+            <div class="text-center mb-16 reveal">
+                <span class="text-purple-400 text-sm font-semibold tracking-widest uppercase">About Me</span>
+                <h2
+                    class="text-4xl sm:text-5xl font-bold mt-3 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                    Who I Am</h2>
+            </div>
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="reveal">
+                    <div class="glass-card p-8 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-purple-600/10 rounded-bl-full"></div>
+                        <div
+                            class="w-full aspect-square rounded-xl bg-gradient-to-br from-dark-700 to-dark-800 flex items-center justify-center overflow-hidden border border-white/5">
+                            <div class="text-center p-8">
+                                <div
+                                    class="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-purple-500 to-cyan-400 flex items-center justify-center mb-4">
+                                    <span class="text-5xl font-black text-white">SN</span>
+                                </div>
+                                <p class="text-gray-400 text-sm mt-2">Subash Nepal</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="reveal space-y-5">
+                    <p class="text-gray-300 leading-relaxed text-lg">
+                        I'm a passionate <span class="text-purple-400 font-semibold">Computer Programmer</span> and
+                        <span class="text-cyan-400 font-semibold">Startup Founder</span> with a deep interest in
+                        building technology that makes a difference.
+                    </p>
+                    <p class="text-gray-400 leading-relaxed">
+                        As the founder of <span class="text-emerald-400 font-semibold">EasyEat Namkeen</span>, I've
+                        combined my entrepreneurial spirit with my technical skills to solve real-world problems. I
+                        believe in the power of technology to transform lives and industries.
+                    </p>
+                    <p class="text-gray-400 leading-relaxed">
+                        When I'm not coding or building products, you'll find me exploring new technologies,
+                        contributing to the tech community, and constantly learning to stay ahead of the curve.
+                    </p>
+                    <div class="flex flex-wrap gap-3 pt-4">
+                        <span class="badge"><i data-lucide="code-2" class="w-3.5 h-3.5"></i> Developer</span>
+                        <span class="badge"><i data-lucide="rocket" class="w-3.5 h-3.5"></i> Entrepreneur</span>
+                        <span class="badge"><i data-lucide="lightbulb" class="w-3.5 h-3.5"></i> Innovator</span>
+                        <span class="badge"><i data-lucide="zap" class="w-3.5 h-3.5"></i> Tech Enthusiast</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════ SKILLS ═══════════════════ -->
+    <section id="skills" class="relative py-28 px-6 motion-blur">
+        <div class="dot-grid"></div>
+        <div class="orb w-[400px] h-[400px] bg-violet-600 -bottom-20 -left-20"></div>
+        <div class="max-w-6xl mx-auto relative z-10">
+            <div class="text-center mb-16 reveal">
+                <span class="text-purple-400 text-sm font-semibold tracking-widest uppercase">My Skills</span>
+                <h2
+                    class="text-4xl sm:text-5xl font-bold mt-3 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                    What I Do Best</h2>
+            </div>
+
+            <!-- Skills grid -->
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+                <!-- Skill Card 1 -->
+                <div class="glass-card p-6 reveal skill-icon">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-yellow-500 flex items-center justify-center mb-4">
+                        <i data-lucide="file-code" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <h3 class="text-white font-semibold text-lg mb-1">HTML / CSS</h3>
+                    <p class="text-gray-400 text-sm mb-4">Semantic markup & modern styling with responsive layouts.</p>
+                    <div class="w-full h-2 bg-dark-600 rounded-full overflow-hidden">
+                        <div class="progress-fill h-full rounded-full bg-gradient-to-r from-orange-500 to-yellow-500"
+                            data-width="92%"></div>
+                    </div>
+                    <span class="text-xs text-gray-500 mt-2 inline-block">92%</span>
+                </div>
+                <!-- Skill Card 2 -->
+                <div class="glass-card p-6 reveal skill-icon">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center mb-4">
+                        <i data-lucide="braces" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <h3 class="text-white font-semibold text-lg mb-1">JavaScript</h3>
+                    <p class="text-gray-400 text-sm mb-4">Dynamic web apps, DOM manipulation & modern ES6+.</p>
+                    <div class="w-full h-2 bg-dark-600 rounded-full overflow-hidden">
+                        <div class="progress-fill h-full rounded-full bg-gradient-to-r from-yellow-400 to-amber-500"
+                            data-width="85%"></div>
+                    </div>
+                    <span class="text-xs text-gray-500 mt-2 inline-block">85%</span>
+                </div>
+                <!-- Skill Card 3 -->
+                <div class="glass-card p-6 reveal skill-icon">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-4">
+                        <i data-lucide="database" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <h3 class="text-white font-semibold text-lg mb-1">Python</h3>
+                    <p class="text-gray-400 text-sm mb-4">Scripting, automation, data analysis & backend development.
+                    </p>
+                    <div class="w-full h-2 bg-dark-600 rounded-full overflow-hidden">
+                        <div class="progress-fill h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"
+                            data-width="80%"></div>
+                    </div>
+                    <span class="text-xs text-gray-500 mt-2 inline-block">80%</span>
+                </div>
+                <!-- Skill Card 4 -->
+                <div class="glass-card p-6 reveal skill-icon">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-4">
+                        <i data-lucide="palette" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <h3 class="text-white font-semibold text-lg mb-1">UI/UX Design</h3>
+                    <p class="text-gray-400 text-sm mb-4">User-centered design, wireframing & visual aesthetics.</p>
+                    <div class="w-full h-2 bg-dark-600 rounded-full overflow-hidden">
+                        <div class="progress-fill h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
+                            data-width="78%"></div>
+                    </div>
+                    <span class="text-xs text-gray-500 mt-2 inline-block">78%</span>
+                </div>
+                <!-- Skill Card 5 -->
+                <div class="glass-card p-6 reveal skill-icon">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center mb-4">
+                        <i data-lucide="git-branch" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <h3 class="text-white font-semibold text-lg mb-1">Git & GitHub</h3>
+                    <p class="text-gray-400 text-sm mb-4">Version control, collaboration & CI/CD workflows.</p>
+                    <div class="w-full h-2 bg-dark-600 rounded-full overflow-hidden">
+                        <div class="progress-fill h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-500"
+                            data-width="88%"></div>
+                    </div>
+                    <span class="text-xs text-gray-500 mt-2 inline-block">88%</span>
+                </div>
+                <!-- Skill Card 6 -->
+                <div class="glass-card p-6 reveal skill-icon">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-red-500 flex items-center justify-center mb-4">
+                        <i data-lucide="lightbulb" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <h3 class="text-white font-semibold text-lg mb-1">Problem Solving</h3>
+                    <p class="text-gray-400 text-sm mb-4">Analytical thinking, algorithms & competitive mindset.</p>
+                    <div class="w-full h-2 bg-dark-600 rounded-full overflow-hidden">
+                        <div class="progress-fill h-full rounded-full bg-gradient-to-r from-rose-500 to-red-500"
+                            data-width="90%"></div>
+                    </div>
+                    <span class="text-xs text-gray-500 mt-2 inline-block">90%</span>
+                </div>
+            </div>
+
+            <!-- Additional badges -->
+            <div class="text-center reveal">
+                <p class="text-gray-500 text-sm mb-4 uppercase tracking-widest font-medium">Also Familiar With</p>
+                <div class="flex flex-wrap justify-center gap-3">
+                    <span class="badge">C Programming</span>
+                    <span class="badge">React</span>
+                    <span class="badge">Tailwind CSS</span>
+                    <span class="badge">Node.js</span>
+                    <span class="badge">SQL</span>
+                    <span class="badge">Figma</span>
+                    <span class="badge">Adobe XD</span>
+                    <span class="badge">Linux</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════ EDUCATION ═══════════════════ -->
+    <section id="education" class="relative py-28 px-6 motion-blur">
+        <div class="dot-grid"></div>
+        <div class="orb w-[380px] h-[380px] bg-cyan-500 top-0 right-20"></div>
+        <div class="max-w-4xl mx-auto relative z-10">
+            <div class="text-center mb-16 reveal">
+                <span class="text-purple-400 text-sm font-semibold tracking-widest uppercase">Education</span>
+                <h2
+                    class="text-4xl sm:text-5xl font-bold mt-3 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                    Academic Journey</h2>
+            </div>
+
+            <div class="relative pl-12">
+                <div class="timeline-line"></div>
+
+                <!-- Education Item 1 -->
+                <div class="relative mb-12 reveal">
+                    <div class="timeline-dot"></div>
+                    <div class="glass-card p-6">
+                        <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
+                            <h3 class="text-white font-semibold text-lg">Bachelor's in Computer Science</h3>
+                            <span class="text-xs text-purple-400 font-mono bg-purple-500/10 px-3 py-1 rounded-full">2023
+                                — Present</span>
+                        </div>
+                        <p class="text-cyan-400 text-sm font-medium mb-2">University / College</p>
+                        <p class="text-gray-400 text-sm leading-relaxed">
+                            Currently pursuing a Bachelor's degree with focus on software engineering, data structures,
+                            algorithms, and full-stack development. Actively participating in coding competitions and
+                            tech events.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Education Item 2 -->
+                <div class="relative mb-12 reveal">
+                    <div class="timeline-dot"></div>
+                    <div class="glass-card p-6">
+                        <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
+                            <h3 class="text-white font-semibold text-lg">Higher Secondary Education (+2)</h3>
+                            <span class="text-xs text-purple-400 font-mono bg-purple-500/10 px-3 py-1 rounded-full">2021
+                                — 2023</span>
+                        </div>
+                        <p class="text-cyan-400 text-sm font-medium mb-2">Science Stream</p>
+                        <p class="text-gray-400 text-sm leading-relaxed">
+                            Completed +2 in Science with strong performance in Mathematics and Computer Science.
+                            Developed foundational programming skills and a passion for technology.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Education Item 3 -->
+                <div class="relative reveal">
+                    <div class="timeline-dot"></div>
+                    <div class="glass-card p-6">
+                        <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
+                            <h3 class="text-white font-semibold text-lg">Secondary Education (SEE)</h3>
+                            <span
+                                class="text-xs text-purple-400 font-mono bg-purple-500/10 px-3 py-1 rounded-full">2021</span>
+                        </div>
+                        <p class="text-cyan-400 text-sm font-medium mb-2">High School</p>
+                        <p class="text-gray-400 text-sm leading-relaxed">
+                            Successfully completed SEE with excellent grades. First exposure to computer programming
+                            which sparked a lifelong passion for coding and technology.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════ EXPERIENCE ═══════════════════ -->
+    <section id="experience" class="relative py-28 px-6 motion-blur">
+        <div class="dot-grid"></div>
+        <div class="orb w-[380px] h-[380px] bg-pink-600 bottom-10 left-10"></div>
+        <div class="max-w-5xl mx-auto relative z-10">
+            <div class="text-center mb-16 reveal">
+                <span class="text-purple-400 text-sm font-semibold tracking-widest uppercase">Experience</span>
+                <h2
+                    class="text-4xl sm:text-5xl font-bold mt-3 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                    Where I've Worked</h2>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Experience 1 — Featured -->
+                <div class="md:col-span-2 reveal">
+                    <div class="glass-card p-8 relative overflow-hidden border-purple-500/20">
+                        <div
+                            class="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-purple-600/10 to-transparent rounded-bl-full">
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 mb-4">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                                <i data-lucide="utensils" class="w-7 h-7 text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-white font-bold text-xl">Founder & CEO</h3>
+                                <p class="text-purple-400 font-semibold">EasyEat Namkeen</p>
+                            </div>
+                            <span
+                                class="ml-auto text-xs text-purple-400 font-mono bg-purple-500/10 px-3 py-1 rounded-full">2023
+                                — Present</span>
+                        </div>
+                        <p class="text-gray-300 leading-relaxed mb-4">
+                            Founded and leading <span class="text-purple-400 font-semibold">EasyEat Namkeen</span>, a
+                            food-tech startup that combines technology with traditional snack production and
+                            distribution. Responsible for product strategy, tech infrastructure, branding, and business
+                            development.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="badge">Leadership</span>
+                            <span class="badge">Product Strategy</span>
+                            <span class="badge">Branding</span>
+                            <span class="badge">Business Dev</span>
+                            <span class="badge">Tech Infrastructure</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Experience 2 -->
+                <div class="reveal">
+                    <div class="glass-card p-6 h-full">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div
+                                class="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
+                                <i data-lucide="code-2" class="w-5 h-5 text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-white font-semibold">Freelance Developer</h3>
+                                <p class="text-cyan-400 text-sm">Self-employed</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-400 text-sm leading-relaxed mb-3">
+                            Building custom websites and web applications for local businesses and startups.
+                            Specializing in responsive design, performance optimization, and modern UI/UX.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="badge">Web Dev</span>
+                            <span class="badge">Responsive Design</span>
+                            <span class="badge">Client Work</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Experience 3 -->
+                <div class="reveal">
+                    <div class="glass-card p-6 h-full">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div
+                                class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center">
+                                <i data-lucide="users" class="w-5 h-5 text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-white font-semibold">Tech Community Lead</h3>
+                                <p class="text-emerald-400 text-sm">Community</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-400 text-sm leading-relaxed mb-3">
+                            Organizing workshops, hackathons, and tech meetups to help aspiring developers grow their
+                            skills. Mentoring students and sharing knowledge through community events.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="badge">Mentorship</span>
+                            <span class="badge">Workshops</span>
+                            <span class="badge">Community</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════ CONTACT ═══════════════════ -->
+    <section id="contact" class="relative py-28 px-6 motion-blur">
+        <div class="dot-grid"></div>
+        <div class="orb w-[400px] h-[400px] bg-purple-700 top-20 left-1/2 -translate-x-1/2"></div>
+        <div class="max-w-4xl mx-auto relative z-10">
+            <div class="text-center mb-16 reveal">
+                <span class="text-purple-400 text-sm font-semibold tracking-widest uppercase">Contact</span>
+                <h2
+                    class="text-4xl sm:text-5xl font-bold mt-3 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                    Let's Connect</h2>
+                <p class="text-gray-400 mt-4 max-w-lg mx-auto">Have a project in mind or want to collaborate? I'd love
+                    to hear from you.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Contact Info -->
+                <div class="space-y-6 reveal">
+                    <div class="glass-card p-5 flex items-center gap-4">
+                        <div
+                            class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="mail" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-xs uppercase tracking-wider font-medium">Email</p>
+                            <p class="text-white font-medium">subashnepal@email.com</p>
+                        </div>
+                    </div>
+                    <div class="glass-card p-5 flex items-center gap-4">
+                        <div
+                            class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="map-pin" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-xs uppercase tracking-wider font-medium">Location</p>
+                            <p class="text-white font-medium">Nepal</p>
+                        </div>
+                    </div>
+                    <div class="glass-card p-5 flex items-center gap-4">
+                        <div
+                            class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="phone" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-xs uppercase tracking-wider font-medium">Phone</p>
+                            <p class="text-white font-medium">Available on request</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Form -->
+                <div class="reveal">
+                    <form id="contactForm" class="glass-card p-6 space-y-5">
+                        <div>
+                            <label
+                                class="text-gray-400 text-xs uppercase tracking-wider font-medium mb-1.5 block">Name</label>
+                            <input type="text" placeholder="Your name"
+                                class="w-full bg-dark-700/60 border border-white/5 rounded-xl px-4 py-3 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-purple-500/40 focus:ring-1 focus:ring-purple-500/20 transition" />
+                        </div>
+                        <div>
+                            <label
+                                class="text-gray-400 text-xs uppercase tracking-wider font-medium mb-1.5 block">Email</label>
+                            <input type="email" placeholder="your@email.com"
+                                class="w-full bg-dark-700/60 border border-white/5 rounded-xl px-4 py-3 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-purple-500/40 focus:ring-1 focus:ring-purple-500/20 transition" />
+                        </div>
+                        <div>
+                            <label
+                                class="text-gray-400 text-xs uppercase tracking-wider font-medium mb-1.5 block">Message</label>
+                            <textarea rows="4" placeholder="Your message..."
+                                class="w-full bg-dark-700/60 border border-white/5 rounded-xl px-4 py-3 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-purple-500/40 focus:ring-1 focus:ring-purple-500/20 transition resize-none"></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary w-full justify-center">
+                            <i data-lucide="send" class="w-4 h-4"></i> Send Message
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════ FOOTER ═══════════════════ -->
+    <footer class="border-t border-white/5 py-8 px-6">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p class="text-gray-500 text-sm">&copy; 2026 Subash Nepal. All rights reserved.</p>
+            <div class="flex items-center gap-5">
+                <a href="https://github.com/Subashnpfr" target="_blank" rel="noopener noreferrer"
+                    class="text-gray-500 hover:text-purple-400 transition"><i data-lucide="github"
+                        class="w-5 h-5"></i></a>
+                <a href="https://www.linkedin.com/in/subashnpfr" target="_blank" rel="noopener noreferrer"
+                    class="text-gray-500 hover:text-purple-400 transition"><i data-lucide="linkedin"
+                        class="w-5 h-5"></i></a>
+                <a href="https://x.com/Subashnp_" target="_blank" rel="noopener noreferrer"
+                    class="text-gray-500 hover:text-purple-400 transition"><i data-lucide="twitter"
+                        class="w-5 h-5"></i></a>
+                <a href="https://www.instagram.com/subashnp_/" target="_blank" rel="noopener noreferrer"
+                    class="text-gray-500 hover:text-purple-400 transition"><i data-lucide="instagram"
+                        class="w-5 h-5"></i></a>
+                <a href="https://www.facebook.com/Subashnpfr" target="_blank" rel="noopener noreferrer"
+                    class="text-gray-500 hover:text-purple-400 transition"><i data-lucide="facebook"
+                        class="w-5 h-5"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ═══════════════════ SCRIPTS ═══════════════════ -->
+    <script>
+        // ── Initialize Lucide icons ──────────────────
+        lucide.createIcons();
+
+        // ── Mobile menu toggle ─────────────────────
+        const menuBtn = document.getElementById('menuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        menuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+        // close mobile menu on link click
+        mobileMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+        });
+
+        // ── Typewriter Effect ──────────────────────
+        const titles = ['Computer Programmer', 'Startup Founder', 'Tech Enthusiast', 'Problem Solver', 'Creative Thinker'];
+        const typewriterEl = document.getElementById('typewriter');
+        let titleIndex = 0, charIndex = 0, isDeleting = false;
+
+        function typewrite() {
+            const current = titles[titleIndex];
+            if (isDeleting) {
+                typewriterEl.textContent = current.substring(0, charIndex--);
+                if (charIndex < 0) {
+                    isDeleting = false;
+                    titleIndex = (titleIndex + 1) % titles.length;
+                    setTimeout(typewrite, 400);
+                    return;
+                }
+                setTimeout(typewrite, 35);
+            } else {
+                typewriterEl.textContent = current.substring(0, charIndex++);
+                if (charIndex > current.length) {
+                    isDeleting = true;
+                    setTimeout(typewrite, 1800);
+                    return;
+                }
+                setTimeout(typewrite, 75);
+            }
+        }
+        typewrite();
+
+        // ── GSAP — Register ScrollTrigger ──────────
+        gsap.registerPlugin(ScrollTrigger);
+
+        // ── GSAP — Hero entrance ───────────────────
+        const heroTl = gsap.timeline({ defaults: { ease: 'power3.out', duration: 1 } });
+        heroTl
+            .from('#home h1', { y: 80, opacity: 0 })
+            .from('#home p', { y: 40, opacity: 0 }, '-=0.6')
+            .from('#home .btn-primary, #home .btn-outline', { y: 30, opacity: 0, stagger: 0.15 }, '-=0.5');
+
+        // ── GSAP — Reveal on Scroll ────────────────
+        gsap.utils.toArray('.reveal').forEach(el => {
+            gsap.to(el, {
+                y: 0, opacity: 1, duration: 0.9, ease: 'power2.out',
+                scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' }
+            });
+        });
+
+        // ── GSAP — Motion Blur on Scroll ──────────
+        let blurTimeout;
+        const motionSections = document.querySelectorAll('.motion-blur');
+        window.addEventListener('scroll', () => {
+            motionSections.forEach(s => s.classList.add('blurring'));
+            clearTimeout(blurTimeout);
+            blurTimeout = setTimeout(() => {
+                motionSections.forEach(s => s.classList.remove('blurring'));
+            }, 100);
+        }, { passive: true });
+
+        // ── Progress bars animate on scroll ────────
+        gsap.utils.toArray('.progress-fill').forEach(bar => {
+            ScrollTrigger.create({
+                trigger: bar,
+                start: 'top 90%',
+                onEnter: () => { bar.style.width = bar.dataset.width; }
+            });
+        });
+
+        // ── Navbar active link highlight ──────────
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.nav-link');
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 120;
+                if (scrollY >= sectionTop) current = section.getAttribute('id');
+            });
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${current}`) link.classList.add('active');
+            });
+        }, { passive: true });
+
+        // ── Navbar shrink on scroll ────────────────
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('shadow-lg', 'shadow-black/20');
+                navbar.style.paddingTop = '8px';
+                navbar.style.paddingBottom = '8px';
+            } else {
+                navbar.classList.remove('shadow-lg', 'shadow-black/20');
+                navbar.style.paddingTop = '';
+                navbar.style.paddingBottom = '';
+            }
+        }, { passive: true });
+
+        // ── Contact form (placeholder) ─────────────
+        document.getElementById('contactForm').addEventListener('submit', e => {
+            e.preventDefault();
+            alert('Thank you for your message! I\'ll get back to you soon.');
+            e.target.reset();
+        });
+    </script>
+</body>
+
+</html>
