@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotebookLM Portal | Research Workspace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            overflow: hidden; /* Prevent double scrollbars */
+        }
+
+        .glass-header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .iframe-container {
+            height: calc(100vh - 64px);
+            width: 100%;
+            position: relative;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+        /* Fallback UI when Iframe is blocked */
+        .fallback-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f1f5f9;
+            z-index: -1; /* Sits behind iframe until needed */
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="glass-header h-16 flex items-center justify-between px-6 sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
+                <i class="fas fa-book-open text-sm"></i>
+            </div>
+            <h1 class="font-semibold text-slate-800 text-lg tracking-tight">NotebookLM Workspace</h1>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <a href="https://notebooklm.google.com/notebook/fa08b6f3-ef23-4326-9130-cb450989d29e?authuser=1" 
+               target="_blank" 
+               class="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-2">
+                <span>Open Direct</span>
+                <i class="fas fa-external-link-alt text-xs"></i>
+            </a>
+            <button onclick="window.location.reload()" class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="iframe-container">
+        <!-- Fallback message shown if the iframe is blocked by Google's Security Headers -->
+        <div class="fallback-overlay">
+            <div class="max-w-md bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+                <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-shield-alt text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900 mb-3">Security Restriction</h2>
+                <p class="text-slate-600 mb-8 leading-relaxed">
+                    Google NotebookLM prevents external sites from "embedding" its interface for your security. Please use the button below to access your notebook directly.
+                </p>
+                <a href="https://notebooklm.google.com/notebook/fa08b6f3-ef23-4326-9130-cb450989d29e?authuser=1" 
+                   target="_blank"
+                   class="inline-flex items-center justify-center px-8 py-3 rounded-xl btn-primary font-semibold w-full gap-3">
+                    Launch Notebook
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                <p class="mt-6 text-xs text-slate-400">
+                    Note: Ensure you are logged into your Google Account in this browser.
+                </p>
+            </div>
+        </div>
+
+        <!-- The NotebookLM Iframe -->
+        <iframe 
+            src="https://notebooklm.google.com/notebook/fa08b6f3-ef23-4326-9130-cb450989d29e?authuser=1" 
+            title="NotebookLM Content"
+            loading="lazy"
+            allow="clipboard-write; self"
+            onerror="handleError()">
+        </iframe>
+    </main>
+
+    <script>
+        // Simple error handling helper
+        function handleError() {
+            console.log("Iframe failed to load, showing fallback.");
+            document.querySelector('.fallback-overlay').style.zIndex = "10";
+        }
+
+        // Most modern browsers will block the iframe automatically due to X-Frame-Options
+        // We can detect if the iframe hasn't loaded content after a few seconds
+        window.addEventListener('load', () => {
+            const iframe = document.querySelector('iframe');
+            
+            // Note: Due to cross-origin policies, we can't actually see inside the iframe
+            // but we can provide a manual trigger if the user sees a blank screen.
+            setTimeout(() => {
+                console.log("View initialized. If you see a 'Refused to Connect' error, use the 'Open Direct' button.");
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
