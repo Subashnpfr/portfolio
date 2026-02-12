@@ -68,6 +68,18 @@
             transform: translateY(-1px);
         }
 
+        .btn-google {
+            background: white;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            transition: all 0.2s ease;
+        }
+
+        .btn-google:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+
         /* Helper for 403 / Loading issues */
         .overlay-card {
             max-width: 480px;
@@ -93,54 +105,52 @@
         
         <div class="flex items-center gap-3">
             <button onclick="toggleView()" class="text-sm font-medium px-4 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">
-                <i class="fas fa-exclamation-triangle mr-2 text-amber-500"></i>
-                Fix 403 Error
+                <i class="fas fa-user-circle mr-2 text-indigo-500"></i>
+                Sign In / Fix Error
             </button>
-            <a href="https://notebooklm.google.com/notebook/fa08b6f3-ef23-4326-9130-cb450989d29e" 
-               target="_blank" 
-               class="text-sm font-medium text-indigo-600 bg-indigo-50 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-2">
-                <span>Open Fullscreen</span>
-                <i class="fas fa-external-link-alt text-[10px]"></i>
-            </a>
+            <button onclick="refreshIframe()" class="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
+                <i class="fas fa-sync-alt"></i>
+            </button>
         </div>
     </header>
 
     <!-- Main Content Area -->
     <main class="iframe-container" id="main-container">
-        <!-- Error/Instruction Overlay (Hidden by default) -->
+        <!-- Login/Instruction Overlay (Hidden by default) -->
         <div id="instruction-overlay" class="absolute inset-0 z-10 flex items-center justify-center bg-slate-50/80 backdrop-blur-sm hidden">
             <div class="overlay-card border border-slate-200">
-                <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-user-lock text-2xl"></i>
+                <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-lock text-2xl"></i>
                 </div>
-                <h2 class="text-2xl font-bold text-slate-900 mb-2">Access Error (403)</h2>
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">Google Login Required</h2>
                 <p class="text-slate-600 mb-6 leading-relaxed">
-                    This usually happens if you are signed into the <b>wrong Google account</b> or if Google is blocking the embedded view for security.
+                    Google security prevents signing in directly inside this window. Please sign in through the official Google popup, then return here.
                 </p>
                 
                 <div class="space-y-3 mb-8">
-                    <a href="https://notebooklm.google.com/notebook/fa08b6f3-ef23-4326-9130-cb450989d29e" 
-                       target="_blank"
-                       class="inline-flex items-center justify-center px-8 py-3 rounded-xl btn-primary font-semibold w-full gap-3 shadow-lg shadow-indigo-200">
-                        Open in New Tab
-                        <i class="fas fa-external-link-alt"></i>
-                    </a>
+                    <button onclick="openSignIn()" 
+                       class="inline-flex items-center justify-center px-8 py-3 rounded-xl btn-google font-semibold w-full gap-3 shadow-sm border border-slate-200">
+                        <img src="https://www.gstatic.com/images/branding/googleg/1x/googleg_standard_color_128dp.png" class="w-5 h-5" alt="Google">
+                        Sign In to Google
+                    </button>
+                    
                     <button onclick="toggleView()" class="w-full text-slate-500 text-sm hover:underline">
-                        Try returning to embedded view
+                        I'm signed in, take me back
                     </button>
                 </div>
 
                 <div class="text-left bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Troubleshooting:</p>
-                    <ul class="text-xs text-slate-500 space-y-2">
-                        <li class="flex gap-2"><i class="fas fa-check text-green-500"></i> Ensure you are logged into the account that owns this notebook.</li>
-                        <li class="flex gap-2"><i class="fas fa-check text-green-500"></i> Try opening the link once in a new tab to "authorize" the session.</li>
-                    </ul>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">How to fix the 403 error:</p>
+                    <ol class="text-xs text-slate-500 space-y-2 list-decimal list-inside">
+                        <li>Click "Sign In to Google" above.</li>
+                        <li>Complete the login in the new window.</li>
+                        <li>Close that window and click the <b>Sync</b> icon in the header here.</li>
+                    </ol>
                 </div>
             </div>
         </div>
 
-        <!-- The NotebookLM Iframe (URL updated to remove authuser=1) -->
+        <!-- The NotebookLM Iframe -->
         <iframe 
             id="workspace-iframe"
             src="https://notebooklm.google.com/notebook/fa08b6f3-ef23-4326-9130-cb450989d29e" 
@@ -150,15 +160,17 @@
     </main>
 
     <!-- Help Toast -->
-    <div class="error-toast">
+    <div id="help-toast" class="error-toast">
         <i class="fas fa-info-circle text-indigo-400"></i>
-        <span class="text-sm">Seeing a Google error? Use the <b>Fix 403</b> button above.</span>
+        <span class="text-sm">Seeing "No Access"? Click <b>Sign In</b> in the top right.</span>
         <button onclick="this.parentElement.remove()" class="ml-2 hover:text-slate-300">
             <i class="fas fa-times text-xs"></i>
         </button>
     </div>
 
     <script>
+        const notebookUrl = "https://notebooklm.google.com/notebook/fa08b6f3-ef23-4326-9130-cb450989d29e";
+
         function toggleView() {
             const overlay = document.getElementById('instruction-overlay');
             const iframe = document.getElementById('workspace-iframe');
@@ -172,11 +184,33 @@
             }
         }
 
-        // Auto-detect load failure (though browsers block reading iframe errors directly)
+        function openSignIn() {
+            // Opening the direct link in a popup allows the user to authenticate with Google.
+            // Once they are logged in, the iframe's cookies will work.
+            const width = 600;
+            const height = 700;
+            const left = (window.innerWidth / 2) - (width / 2);
+            const top = (window.innerHeight / 2) - (height / 2);
+            
+            window.open(notebookUrl, 'GoogleLogin', `width=${width},height=${height},top=${top},left=${left}`);
+            
+            // Show the return view
+            document.getElementById('help-toast').innerHTML = `
+                <i class="fas fa-check-circle text-green-400"></i>
+                <span class="text-sm">Done signing in? Click the <b>Sync</b> icon above to load.</span>
+            `;
+        }
+
+        function refreshIframe() {
+            const iframe = document.getElementById('workspace-iframe');
+            iframe.src = iframe.src; // Force reload
+            document.getElementById('instruction-overlay').classList.add('hidden');
+            iframe.style.opacity = "1";
+        }
+
+        // Detect potential load issues
         window.addEventListener('load', () => {
-            setTimeout(() => {
-                console.log("Portal ready. Removing specific session parameters to avoid 403 errors.");
-            }, 1000);
+            console.log("Portal ready.");
         });
     </script>
 </body>
