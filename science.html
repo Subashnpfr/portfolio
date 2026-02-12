@@ -108,7 +108,7 @@
                 <i class="fas fa-user-circle mr-2 text-indigo-500"></i>
                 Sign In / Fix Error
             </button>
-            <button onclick="refreshIframe()" class="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
+            <button onclick="refreshIframe()" class="p-2 text-slate-400 hover:text-indigo-600 transition-colors" title="Refresh Workspace">
                 <i class="fas fa-sync-alt"></i>
             </button>
         </div>
@@ -124,7 +124,7 @@
                 </div>
                 <h2 class="text-2xl font-bold text-slate-900 mb-2">Google Login Required</h2>
                 <p class="text-slate-600 mb-6 leading-relaxed">
-                    Google security prevents signing in directly inside this window. Please sign in through the official Google popup, then return here.
+                    Google restricts signing in directly inside this frame. Click below to sign in via a secure window, then return here to sync.
                 </p>
                 
                 <div class="space-y-3 mb-8">
@@ -143,8 +143,8 @@
                     <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">How to fix the 403 error:</p>
                     <ol class="text-xs text-slate-500 space-y-2 list-decimal list-inside">
                         <li>Click "Sign In to Google" above.</li>
-                        <li>Complete the login in the new window.</li>
-                        <li>Close that window and click the <b>Sync</b> icon in the header here.</li>
+                        <li>Log into your account in the new window.</li>
+                        <li><b>Close</b> that window and click the <i class="fas fa-sync-alt mx-1"></i> <b>Sync</b> icon in the top right.</li>
                     </ol>
                 </div>
             </div>
@@ -169,7 +169,7 @@
     </div>
 
     <script>
-        const notebookUrl = "https://notebooklm.google.com/notebook/fa08b6f3-ef23-4326-9130-cb450989d29e";
+        const googleLoginUrl = "https://accounts.google.com/ServiceLogin?continue=https://notebooklm.google.com/";
 
         function toggleView() {
             const overlay = document.getElementById('instruction-overlay');
@@ -185,30 +185,34 @@
         }
 
         function openSignIn() {
-            // Opening the direct link in a popup allows the user to authenticate with Google.
-            // Once they are logged in, the iframe's cookies will work.
-            const width = 600;
-            const height = 700;
+            // Opening a standard Google login page instead of the specific notebook.
+            // This authorizes the browser session globally for NotebookLM.
+            const width = 500;
+            const height = 600;
             const left = (window.innerWidth / 2) - (width / 2);
             const top = (window.innerHeight / 2) - (height / 2);
             
-            window.open(notebookUrl, 'GoogleLogin', `width=${width},height=${height},top=${top},left=${left}`);
+            window.open(googleLoginUrl, 'GoogleLogin', `width=${width},height=${height},top=${top},left=${left}`);
             
-            // Show the return view
+            // Update toast to prompt sync
             document.getElementById('help-toast').innerHTML = `
                 <i class="fas fa-check-circle text-green-400"></i>
-                <span class="text-sm">Done signing in? Click the <b>Sync</b> icon above to load.</span>
+                <span class="text-sm">Signed in? Close the popup and click the <b>Sync</b> icon above.</span>
             `;
         }
 
         function refreshIframe() {
             const iframe = document.getElementById('workspace-iframe');
-            iframe.src = iframe.src; // Force reload
-            document.getElementById('instruction-overlay').classList.add('hidden');
-            iframe.style.opacity = "1";
+            // Hard refresh by re-assigning SRC
+            const currentSrc = iframe.src;
+            iframe.src = "";
+            setTimeout(() => {
+                iframe.src = currentSrc;
+                document.getElementById('instruction-overlay').classList.add('hidden');
+                iframe.style.opacity = "1";
+            }, 50);
         }
 
-        // Detect potential load issues
         window.addEventListener('load', () => {
             console.log("Portal ready.");
         });
