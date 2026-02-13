@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digambar AI - Single File Edition</title>
+    <title>Digambar AI </title>
     <!-- Tailwind CSS Play CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React and ReactDOM CDNs -->
@@ -38,6 +38,12 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
+
+        // ==========================================
+        // ADD YOUR API KEY HERE (OPTIONAL)
+        // ==========================================
+        const HARDCODED_API_KEY = "AIzaSyDvmg7r-hVJUyD4fa_1G6Anz1L04Pnm7O4"; 
+        // ==========================================
 
         // --- Helper Icon Component for Single File ---
         const Icon = ({ name, size = 20, className = "" }) => {
@@ -108,8 +114,15 @@
 
             useEffect(() => {
                 const savedKey = localStorage.getItem('digambar_api_key');
-                if (savedKey) setApiKey(savedKey);
-                else setShowSettings(true);
+                
+                // Priority: Hardcoded > Local Storage
+                if (HARDCODED_API_KEY) {
+                    setApiKey(HARDCODED_API_KEY);
+                } else if (savedKey) {
+                    setApiKey(savedKey);
+                } else {
+                    setShowSettings(true);
+                }
             }, []);
 
             useEffect(() => {
@@ -163,10 +176,15 @@
                     });
 
                     const data = await response.json();
+                    
+                    if (data.error) {
+                        throw new Error(data.error.message);
+                    }
+
                     const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "Error processing request.";
                     setMessages(prev => [...prev, { role: 'assistant', content: aiResponse, timestamp: new Date().toLocaleTimeString() }]);
                 } catch (e) {
-                    setMessages(prev => [...prev, { role: 'assistant', content: "Error connecting to AI. Check your key.", timestamp: new Date().toLocaleTimeString() }]);
+                    setMessages(prev => [...prev, { role: 'assistant', content: `**Error:** ${e.message}`, timestamp: new Date().toLocaleTimeString() }]);
                 } finally {
                     setIsLoading(false);
                 }
@@ -245,16 +263,25 @@
                     {showSettings && (
                         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
                             <div className="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl border border-slate-100">
-                                <h2 className="text-xl font-bold mb-4">API Config</h2>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-xl font-bold">API Config</h2>
+                                    {apiKey && (
+                                        <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-slate-600">
+                                            <Icon name="x" size={20} />
+                                        </button>
+                                    )}
+                                </div>
                                 <input 
                                     type="password" 
                                     value={apiKey} 
                                     onChange={e => setApiKey(e.target.value)} 
-                                    className="w-full p-4 bg-slate-50 border rounded-2xl outline-none focus:border-indigo-500 mb-4 font-mono"
+                                    className="w-full p-4 bg-slate-50 border rounded-2xl outline-none focus:border-indigo-500 mb-4 font-mono text-sm"
                                     placeholder="Enter Gemini API Key"
                                 />
-                                <Button className="w-full py-4 rounded-2xl" onClick={() => { localStorage.setItem('digambar_api_key', apiKey); setShowSettings(false); }}>Save & Start</Button>
-                                <a href="https://aistudio.google.com/app/apikey" target="_blank" className="block text-center mt-4 text-xs text-indigo-600 underline">Get free key here</a>
+                                <Button className="w-full py-4 rounded-2xl" onClick={() => { localStorage.setItem('digambar_api_key', apiKey); setShowSettings(false); }}>Save & Continue</Button>
+                                <p className="text-[10px] text-slate-400 mt-4 text-center">
+                                    {HARDCODED_API_KEY ? "A key is currently hardcoded in source." : "Get a free key at Google AI Studio."}
+                                </p>
                             </div>
                         </div>
                     )}
