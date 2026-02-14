@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digambar AI </title>
+    <title>Digambar AI - Math Solver</title>
     <!-- Tailwind CSS Play CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React and ReactDOM CDNs -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel for JSX compilation in the browser -->
+    <!-- Babel for JSX compilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -31,23 +31,26 @@
             overflow-x: auto;
         }
         .prose p { margin-bottom: 0.75rem; line-height: 1.6; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message-animate { animation: fadeIn 0.3s ease-out forwards; }
     </style>
 </head>
-<body class="bg-slate-50">
+<body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
 
-        // ==========================================
-        // ADD YOUR API KEY HERE (OPTIONAL)
-        // ==========================================
-        const HARDCODED_API_KEY = ""; 
-        // ==========================================
+        // API Configuration
+        const apiKey = ""; // Handled by environment
+        const MODEL_NAME = "gemini-2.5-flash-preview-09-2025";
 
-        // --- Helper Icon Component for Single File ---
+        // --- Helper Icon Component ---
         const Icon = ({ name, size = 20, className = "" }) => {
-            const iconRef = useRef(null);
             useEffect(() => {
                 if (window.lucide) {
                     window.lucide.createIcons({
@@ -59,7 +62,7 @@
                         nameAttr: 'data-lucide'
                     });
                 }
-            }, [name]);
+            }, [name, size]);
             return <i data-lucide={name} className={className}></i>;
         };
 
@@ -97,36 +100,26 @@
         };
 
         function App() {
-            const [apiKey, setApiKey] = useState("");
             const [query, setQuery] = useState("");
             const [image, setImage] = useState(null);
             const [imagePreview, setImagePreview] = useState(null);
             const [messages, setMessages] = useState([
                 { 
                     role: 'assistant', 
-                    content: 'Hello! I am **Digambar AI**. You can Paste (Ctrl+V) images or upload files to solve math step-by-step.',
+                    content: 'Hello! I am **Digambar AI**. Paste an image (Ctrl+V) or type a problem, and I will solve it for you step-by-step.',
                     timestamp: new Date().toLocaleTimeString()
                 }
             ]);
             const [isLoading, setIsLoading] = useState(false);
-            const [showSettings, setShowSettings] = useState(false);
             const scrollRef = useRef(null);
 
             useEffect(() => {
-                const savedKey = localStorage.getItem('digambar_api_key');
-                
-                // Priority: Hardcoded > Local Storage
-                if (HARDCODED_API_KEY) {
-                    setApiKey(HARDCODED_API_KEY);
-                } else if (savedKey) {
-                    setApiKey(savedKey);
-                } else {
-                    setShowSettings(true);
+                if (scrollRef.current) {
+                    scrollRef.current.scrollTo({
+                        top: scrollRef.current.scrollHeight,
+                        behavior: 'smooth'
+                    });
                 }
-            }, []);
-
-            useEffect(() => {
-                if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
             }, [messages, isLoading]);
 
             const processFile = (file) => {
@@ -148,43 +141,87 @@
                 }
             };
 
-            const solveMath = async () => {
-                if (!query.trim() && !image) return;
-                if (!apiKey) { setShowSettings(true); return; }
+            const fetchWithRetry = async (payload, retries = 5, delay = 1000) => {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
+                
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
 
-                const userMessage = { role: 'user', content: query, image: imagePreview, timestamp: new Date().toLocaleTimeString() };
+                        const data = await response.json();
+                        if (response.ok) return data;
+                        
+                        // If it's a 429 or 5xx error, retry
+                        if (response.status === 429 || response.status >= 500) {
+                            await new Promise(res => setTimeout(res, delay));
+                            delay *= 2; // Exponential backoff
+                            continue;
+                        }
+
+                        throw new Error(data.error?.message || "Failed to process request.");
+                    } catch (err) {
+                        if (i === retries - 1) throw err;
+                        await new Promise(res => setTimeout(res, delay));
+                        delay *= 2;
+                    }
+                }
+            };
+
+            const solveMath = async () => {
+                if (!query.trim() && !imagePreview) return;
+
+                const userMessage = { 
+                    role: 'user', 
+                    content: query, 
+                    image: imagePreview, 
+                    timestamp: new Date().toLocaleTimeString() 
+                };
+                
                 setMessages(prev => [...prev, userMessage]);
+                
                 const currentQuery = query;
                 const currentImage = imagePreview;
                 
-                setQuery(""); setImage(null); setImagePreview(null);
+                setQuery(""); 
+                setImage(null); 
+                setImagePreview(null);
                 setIsLoading(true);
 
                 try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [
-                                    { text: currentQuery || "Solve the problem in this image step-by-step." },
-                                    ...(currentImage ? [{ inlineData: { mimeType: "image/png", data: currentImage.split(',')[1] } }] : [])
-                                ]
-                            }],
-                            systemInstruction: { parts: [{ text: "You are Digambar AI. Provide structured math solutions. Wrap math in $...$ or $$...$$. Use Steps." }] }
-                        })
-                    });
-
-                    const data = await response.json();
+                    const prompt = currentQuery || "Please analyze this image and solve the math problem shown step-by-step with clear explanations.";
                     
-                    if (data.error) {
-                        throw new Error(data.error.message);
-                    }
+                    const payload = {
+                        contents: [{
+                            parts: [
+                                { text: prompt },
+                                ...(currentImage ? [{ inlineData: { mimeType: "image/png", data: currentImage.split(',')[1] } }] : [])
+                            ]
+                        }],
+                        systemInstruction: { 
+                            parts: [{ 
+                                text: "You are Digambar AI, a professional mathematics tutor. Provide clear, structured, step-by-step solutions. Always use LaTeX for mathematical notation. Wrap inline math in $...$ and display equations in $$. Break down the solution into logical steps." 
+                            }] 
+                        }
+                    };
 
-                    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "Error processing request.";
-                    setMessages(prev => [...prev, { role: 'assistant', content: aiResponse, timestamp: new Date().toLocaleTimeString() }]);
+                    const data = await fetchWithRetry(payload);
+                    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a solution for that problem.";
+                    
+                    setMessages(prev => [...prev, { 
+                        role: 'assistant', 
+                        content: aiResponse, 
+                        timestamp: new Date().toLocaleTimeString() 
+                    }]);
                 } catch (e) {
-                    setMessages(prev => [...prev, { role: 'assistant', content: `**Error:** ${e.message}`, timestamp: new Date().toLocaleTimeString() }]);
+                    setMessages(prev => [...prev, { 
+                        role: 'assistant', 
+                        content: `**Error:** ${e.message}. Please try again in a moment.`, 
+                        timestamp: new Date().toLocaleTimeString() 
+                    }]);
                 } finally {
                     setIsLoading(false);
                 }
@@ -192,99 +229,124 @@
 
             const parseContent = (text) => {
                 if (!text) return null;
+                // Split by display math $$...$$ and inline math $...$
                 const parts = text.split(/(\$\$.*?\$\$|\$.*?\$)/gs);
+                
                 return parts.map((part, i) => {
                     if (part.startsWith('$$')) return <MathSpan key={i} tex={part.slice(2, -2)} display={true} />;
                     if (part.startsWith('$')) return <MathSpan key={i} tex={part.slice(1, -1)} display={false} />;
-                    return <span key={i} dangerouslySetInnerHTML={{ __html: part.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />;
+                    
+                    // Simple markdown-style bold and line breaks
+                    return <span key={i} dangerouslySetInnerHTML={{ 
+                        __html: part
+                            .replace(/\n/g, '<br/>')
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                    }} />;
                 });
             };
 
             return (
-                <div className="min-h-screen flex flex-col" onPaste={handlePaste}>
-                    <header className="h-16 border-b bg-white/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-50">
+                <div className="h-screen flex flex-col overflow-hidden" onPaste={handlePaste}>
+                    {/* Header */}
+                    <header className="h-16 border-b bg-white/80 backdrop-blur-md flex items-center justify-between px-6 shrink-0 z-50">
                         <div className="flex items-center gap-2">
                             <div className="bg-indigo-600 p-1.5 rounded-lg text-white shadow-lg shadow-indigo-100">
-                                <Icon name="plus" size={20} />
+                                <Icon name="calculator" size={20} />
                             </div>
                             <span className="text-xl font-bold tracking-tight">Digambar <span className="text-indigo-600">AI</span></span>
                         </div>
                         <div className="flex gap-2">
-                            <Button variant="ghost" onClick={() => setMessages([])} icon="trash-2" />
-                            <Button variant="secondary" onClick={() => setShowSettings(true)} icon="settings">Config</Button>
+                            <Button variant="ghost" onClick={() => setMessages([messages[0]])} icon="trash-2" title="Clear Chat" />
                         </div>
                     </header>
 
-                    <main className="flex-grow max-w-3xl w-full mx-auto p-4 pb-40">
-                        <div ref={scrollRef} className="space-y-6">
+                    {/* Chat Area */}
+                    <main ref={scrollRef} className="flex-grow overflow-y-auto custom-scrollbar p-4 md:p-6 bg-slate-50">
+                        <div className="max-w-3xl mx-auto space-y-6">
                             {messages.map((msg, i) => (
-                                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`p-5 rounded-3xl max-w-[90%] shadow-sm border ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border-slate-200 rounded-tl-none'}`}>
-                                        {msg.image && <img src={msg.image} className="rounded-xl mb-4 max-h-64 mx-auto" />}
-                                        <div className="prose prose-slate">{msg.role === 'user' ? msg.content : parseContent(msg.content)}</div>
-                                        <div className="mt-2 text-[10px] uppercase font-bold opacity-30 text-right">{msg.timestamp}</div>
+                                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} message-animate`}>
+                                    <div className={`p-5 rounded-3xl max-w-[90%] shadow-sm border ${
+                                        msg.role === 'user' 
+                                            ? 'bg-indigo-600 text-white rounded-tr-none border-indigo-500' 
+                                            : 'bg-white border-slate-200 rounded-tl-none'
+                                    }`}>
+                                        {msg.image && (
+                                            <div className="mb-4 overflow-hidden rounded-xl border border-white/20">
+                                                <img src={msg.image} className="max-h-80 w-full object-contain bg-slate-100" />
+                                            </div>
+                                        )}
+                                        <div className={`prose ${msg.role === 'user' ? 'prose-invert text-white' : 'prose-slate'} max-w-none`}>
+                                            {msg.role === 'user' ? msg.content : parseContent(msg.content)}
+                                        </div>
+                                        <div className={`mt-3 text-[10px] uppercase font-bold tracking-widest opacity-40 text-right`}>
+                                            {msg.timestamp}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
                             {isLoading && (
-                                <div className="bg-white border p-4 rounded-2xl flex items-center gap-3 w-fit shadow-sm">
-                                    <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                                    <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Solving...</span>
+                                <div className="flex justify-start message-animate">
+                                    <div className="bg-white border border-slate-200 p-4 rounded-2xl flex items-center gap-3 shadow-sm">
+                                        <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                        <span className="text-sm font-semibold text-slate-500 uppercase tracking-widest">Digambar is calculating...</span>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </main>
 
-                    <footer className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-50 to-transparent">
+                    {/* Input Area */}
+                    <footer className="p-4 bg-white border-t shrink-0">
                         <div className="max-w-3xl mx-auto">
                             {imagePreview && (
-                                <div className="mb-2 relative inline-block animate-in zoom-in duration-200">
-                                    <img src={imagePreview} className="h-20 w-20 object-cover rounded-xl border-4 border-white shadow-xl" />
-                                    <button onClick={() => setImagePreview(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg"><Icon name="x" size={12} /></button>
+                                <div className="mb-3 relative inline-block animate-in zoom-in duration-200">
+                                    <img src={imagePreview} className="h-24 w-24 object-cover rounded-2xl border-4 border-white shadow-2xl ring-1 ring-slate-200" />
+                                    <button 
+                                        onClick={() => { setImage(null); setImagePreview(null); }} 
+                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-lg hover:bg-red-600 transition-colors"
+                                    >
+                                        <Icon name="x" size={14} />
+                                    </button>
                                 </div>
                             )}
-                            <div className="bg-white rounded-3xl p-2 shadow-2xl border flex items-end ring-1 ring-slate-200/50">
+                            <div className="bg-slate-100 rounded-3xl p-2 shadow-inner flex items-end ring-1 ring-slate-200 focus-within:ring-indigo-500 focus-within:bg-white transition-all duration-200">
                                 <textarea
                                     value={query}
                                     onChange={e => setQuery(e.target.value)}
-                                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); solveMath(); }}}
-                                    placeholder="Paste image or type problem..."
-                                    className="flex-grow p-4 bg-transparent outline-none resize-none max-h-40 font-medium"
+                                    onKeyDown={e => { 
+                                        if (e.key === 'Enter' && !e.shiftKey) { 
+                                            e.preventDefault(); 
+                                            solveMath(); 
+                                        } 
+                                    }}
+                                    placeholder="Type a problem or paste an image..."
+                                    className="flex-grow p-3 bg-transparent outline-none resize-none max-h-40 font-medium text-slate-700 custom-scrollbar"
                                     rows={1}
                                 />
-                                <div className="flex gap-1 pb-2 pr-2">
-                                    <label className="p-3 text-slate-400 cursor-pointer hover:bg-slate-50 rounded-2xl"><Icon name="image" /><input type="file" className="hidden" onChange={e => processFile(e.target.files[0])} /></label>
-                                    <Button onClick={solveMath} className="h-12 w-12 !p-0 rounded-2xl"><Icon name="send" size={22} /></Button>
+                                <div className="flex gap-1 pb-1.5 pr-1.5">
+                                    <label className="p-3 text-slate-500 cursor-pointer hover:bg-slate-200 rounded-2xl transition-colors">
+                                        <Icon name="image" />
+                                        <input 
+                                            type="file" 
+                                            className="hidden" 
+                                            accept="image/*"
+                                            onChange={e => processFile(e.target.files[0])} 
+                                        />
+                                    </label>
+                                    <Button 
+                                        onClick={solveMath} 
+                                        disabled={isLoading || (!query.trim() && !imagePreview)}
+                                        className="h-12 w-12 !p-0 rounded-2xl"
+                                    >
+                                        <Icon name="send" size={22} />
+                                    </Button>
                                 </div>
                             </div>
+                            <p className="text-center text-[10px] text-slate-400 mt-2 font-medium uppercase tracking-widest">
+                                Powered by Gemini 2.5 Flash
+                            </p>
                         </div>
                     </footer>
-
-                    {showSettings && (
-                        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                            <div className="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl border border-slate-100">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-xl font-bold">API Config</h2>
-                                    {apiKey && (
-                                        <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-slate-600">
-                                            <Icon name="x" size={20} />
-                                        </button>
-                                    )}
-                                </div>
-                                <input 
-                                    type="password" 
-                                    value={apiKey} 
-                                    onChange={e => setApiKey(e.target.value)} 
-                                    className="w-full p-4 bg-slate-50 border rounded-2xl outline-none focus:border-indigo-500 mb-4 font-mono text-sm"
-                                    placeholder="Enter Gemini API Key"
-                                />
-                                <Button className="w-full py-4 rounded-2xl" onClick={() => { localStorage.setItem('digambar_api_key', apiKey); setShowSettings(false); }}>Save & Continue</Button>
-                                <p className="text-[10px] text-slate-400 mt-4 text-center">
-                                    {HARDCODED_API_KEY ? "A key is currently hardcoded in source." : "Get a free key at Google AI Studio."}
-                                </p>
-                            </div>
-                        </div>
-                    )}
                 </div>
             );
         }
