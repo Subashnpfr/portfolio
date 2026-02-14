@@ -43,10 +43,18 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo } = React;
+        const { useState, useEffect, useRef } = React;
 
-        // API Configuration
-        const apiKey = ""; // Handled by environment
+        // ======================================================================
+        // GITHUB SECRET INTEGRATION
+        // ======================================================================
+        // If you are using GitHub Actions to deploy, you can use a step like:
+        // run: sed -i "s/const HARDCODED_API_KEY = \"\";/const HARDCODED_API_KEY = \"${{ secrets.HARDCODED_API_KEY }}\";/g" index.html
+        const HARDCODED_API_KEY = ""; 
+        const apiKey = ""; // Internal environment key
+        const FINAL_API_KEY = HARDCODED_API_KEY || apiKey;
+        // ======================================================================
+
         const MODEL_NAME = "gemini-2.5-flash-preview-09-2025";
 
         // --- Helper Icon Component ---
@@ -101,12 +109,11 @@
 
         function App() {
             const [query, setQuery] = useState("");
-            const [image, setImage] = useState(null);
             const [imagePreview, setImagePreview] = useState(null);
             const [messages, setMessages] = useState([
                 { 
                     role: 'assistant', 
-                    content: 'Hello! I am **Digambar AI**. Paste an image (Ctrl+V) or type a problem, and I will solve it for you step-by-step.',
+                    content: 'Hello! I am **Digambar AI**, connected directly to Google AI Studio. Send me a math problem or paste an image (Ctrl+V) to get started.',
                     timestamp: new Date().toLocaleTimeString()
                 }
             ]);
@@ -124,7 +131,6 @@
 
             const processFile = (file) => {
                 if (file && file.type.startsWith('image/')) {
-                    setImage(file);
                     const reader = new FileReader();
                     reader.onloadend = () => setImagePreview(reader.result);
                     reader.readAsDataURL(file);
@@ -137,36 +143,6 @@
                     if (items[i].type.indexOf('image') !== -1) {
                         processFile(items[i].getAsFile());
                         break;
-                    }
-                }
-            };
-
-            const fetchWithRetry = async (payload, retries = 5, delay = 1000) => {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
-                
-                for (let i = 0; i < retries; i++) {
-                    try {
-                        const response = await fetch(url, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
-
-                        const data = await response.json();
-                        if (response.ok) return data;
-                        
-                        // If it's a 429 or 5xx error, retry
-                        if (response.status === 429 || response.status >= 500) {
-                            await new Promise(res => setTimeout(res, delay));
-                            delay *= 2; // Exponential backoff
-                            continue;
-                        }
-
-                        throw new Error(data.error?.message || "Failed to process request.");
-                    } catch (err) {
-                        if (i === retries - 1) throw err;
-                        await new Promise(res => setTimeout(res, delay));
-                        delay *= 2;
                     }
                 }
             };
@@ -187,29 +163,47 @@
                 const currentImage = imagePreview;
                 
                 setQuery(""); 
-                setImage(null); 
                 setImagePreview(null);
                 setIsLoading(true);
 
                 try {
-                    const prompt = currentQuery || "Please analyze this image and solve the math problem shown step-by-step with clear explanations.";
-                    
                     const payload = {
                         contents: [{
                             parts: [
-                                { text: prompt },
+                                { text: currentQuery || "Please solve the math problem in this image." },
                                 ...(currentImage ? [{ inlineData: { mimeType: "image/png", data: currentImage.split(',')[1] } }] : [])
                             ]
                         }],
                         systemInstruction: { 
                             parts: [{ 
-                                text: "You are Digambar AI, a professional mathematics tutor. Provide clear, structured, step-by-step solutions. Always use LaTeX for mathematical notation. Wrap inline math in $...$ and display equations in $$. Break down the solution into logical steps." 
+                                text: "You are Digambar AI, a professional math tutor from Google AI Studio. Solve problems step-by-step. Use LaTeX for math ($...$ for inline, $$...$$ for display). Be precise and clear." 
                             }] 
                         }
                     };
 
-                    const data = await fetchWithRetry(payload);
-                    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a solution for that problem.";
+                    let response;
+                    let retries = 5;
+                    let delay = 1000;
+
+                    for (let i = 0; i < retries; i++) {
+                        response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${FINAL_API_KEY}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (response.ok) break;
+                        if (i < retries - 1 && (response.status === 429 || response.status >= 500)) {
+                            await new Promise(r => setTimeout(r, delay));
+                            delay *= 2;
+                        } else {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error?.message || "Google AI Studio API Error");
+                        }
+                    }
+
+                    const data = await response.json();
+                    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response received.";
                     
                     setMessages(prev => [...prev, { 
                         role: 'assistant', 
@@ -219,7 +213,7 @@
                 } catch (e) {
                     setMessages(prev => [...prev, { 
                         role: 'assistant', 
-                        content: `**Error:** ${e.message}. Please try again in a moment.`, 
+                        content: `**API Error:** ${e.message}`, 
                         timestamp: new Date().toLocaleTimeString() 
                     }]);
                 } finally {
@@ -229,122 +223,81 @@
 
             const parseContent = (text) => {
                 if (!text) return null;
-                // Split by display math $$...$$ and inline math $...$
                 const parts = text.split(/(\$\$.*?\$\$|\$.*?\$)/gs);
-                
                 return parts.map((part, i) => {
                     if (part.startsWith('$$')) return <MathSpan key={i} tex={part.slice(2, -2)} display={true} />;
                     if (part.startsWith('$')) return <MathSpan key={i} tex={part.slice(1, -1)} display={false} />;
-                    
-                    // Simple markdown-style bold and line breaks
                     return <span key={i} dangerouslySetInnerHTML={{ 
-                        __html: part
-                            .replace(/\n/g, '<br/>')
-                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                        __html: part.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
                     }} />;
                 });
             };
 
             return (
-                <div className="h-screen flex flex-col overflow-hidden" onPaste={handlePaste}>
-                    {/* Header */}
-                    <header className="h-16 border-b bg-white/80 backdrop-blur-md flex items-center justify-between px-6 shrink-0 z-50">
+                <div className="h-screen flex flex-col overflow-hidden bg-slate-50" onPaste={handlePaste}>
+                    <header className="h-16 border-b bg-white flex items-center justify-between px-6 shrink-0 z-50">
                         <div className="flex items-center gap-2">
-                            <div className="bg-indigo-600 p-1.5 rounded-lg text-white shadow-lg shadow-indigo-100">
-                                <Icon name="calculator" size={20} />
+                            <div className="bg-indigo-600 p-1.5 rounded-lg text-white">
+                                <Icon name="bot" size={20} />
                             </div>
-                            <span className="text-xl font-bold tracking-tight">Digambar <span className="text-indigo-600">AI</span></span>
+                            <span className="text-xl font-bold">Digambar <span className="text-indigo-600 font-extrabold">STUDIO</span></span>
                         </div>
-                        <div className="flex gap-2">
-                            <Button variant="ghost" onClick={() => setMessages([messages[0]])} icon="trash-2" title="Clear Chat" />
-                        </div>
+                        <Button variant="ghost" onClick={() => setMessages([messages[0]])} icon="refresh-cw">Reset</Button>
                     </header>
 
-                    {/* Chat Area */}
-                    <main ref={scrollRef} className="flex-grow overflow-y-auto custom-scrollbar p-4 md:p-6 bg-slate-50">
+                    <main ref={scrollRef} className="flex-grow overflow-y-auto custom-scrollbar p-4 md:p-6">
                         <div className="max-w-3xl mx-auto space-y-6">
                             {messages.map((msg, i) => (
                                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} message-animate`}>
                                     <div className={`p-5 rounded-3xl max-w-[90%] shadow-sm border ${
-                                        msg.role === 'user' 
-                                            ? 'bg-indigo-600 text-white rounded-tr-none border-indigo-500' 
-                                            : 'bg-white border-slate-200 rounded-tl-none'
+                                        msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border-slate-200 rounded-tl-none'
                                     }`}>
-                                        {msg.image && (
-                                            <div className="mb-4 overflow-hidden rounded-xl border border-white/20">
-                                                <img src={msg.image} className="max-h-80 w-full object-contain bg-slate-100" />
-                                            </div>
-                                        )}
-                                        <div className={`prose ${msg.role === 'user' ? 'prose-invert text-white' : 'prose-slate'} max-w-none`}>
+                                        {msg.image && <img src={msg.image} className="max-h-64 rounded-xl mb-4 border border-white/20" />}
+                                        <div className="prose prose-slate max-w-none">
                                             {msg.role === 'user' ? msg.content : parseContent(msg.content)}
                                         </div>
-                                        <div className={`mt-3 text-[10px] uppercase font-bold tracking-widest opacity-40 text-right`}>
-                                            {msg.timestamp}
-                                        </div>
+                                        <div className="mt-2 text-[9px] uppercase font-bold tracking-widest opacity-30 text-right">{msg.timestamp}</div>
                                     </div>
                                 </div>
                             ))}
                             {isLoading && (
                                 <div className="flex justify-start message-animate">
-                                    <div className="bg-white border border-slate-200 p-4 rounded-2xl flex items-center gap-3 shadow-sm">
+                                    <div className="bg-white border p-4 rounded-2xl flex items-center gap-3 shadow-sm">
                                         <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                                        <span className="text-sm font-semibold text-slate-500 uppercase tracking-widest">Digambar is calculating...</span>
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">AI Studio is processing...</span>
                                     </div>
                                 </div>
                             )}
                         </div>
                     </main>
 
-                    {/* Input Area */}
                     <footer className="p-4 bg-white border-t shrink-0">
                         <div className="max-w-3xl mx-auto">
                             {imagePreview && (
-                                <div className="mb-3 relative inline-block animate-in zoom-in duration-200">
-                                    <img src={imagePreview} className="h-24 w-24 object-cover rounded-2xl border-4 border-white shadow-2xl ring-1 ring-slate-200" />
-                                    <button 
-                                        onClick={() => { setImage(null); setImagePreview(null); }} 
-                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-lg hover:bg-red-600 transition-colors"
-                                    >
-                                        <Icon name="x" size={14} />
-                                    </button>
+                                <div className="mb-3 relative inline-block">
+                                    <img src={imagePreview} className="h-20 w-20 object-cover rounded-xl border shadow-lg" />
+                                    <button onClick={() => setImagePreview(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><Icon name="x" size={12} /></button>
                                 </div>
                             )}
-                            <div className="bg-slate-100 rounded-3xl p-2 shadow-inner flex items-end ring-1 ring-slate-200 focus-within:ring-indigo-500 focus-within:bg-white transition-all duration-200">
+                            <div className="bg-slate-100 rounded-2xl p-2 flex items-end ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:bg-white transition-all">
                                 <textarea
                                     value={query}
                                     onChange={e => setQuery(e.target.value)}
-                                    onKeyDown={e => { 
-                                        if (e.key === 'Enter' && !e.shiftKey) { 
-                                            e.preventDefault(); 
-                                            solveMath(); 
-                                        } 
-                                    }}
-                                    placeholder="Type a problem or paste an image..."
-                                    className="flex-grow p-3 bg-transparent outline-none resize-none max-h-40 font-medium text-slate-700 custom-scrollbar"
+                                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); solveMath(); }}}
+                                    placeholder="Enter math problem..."
+                                    className="flex-grow p-3 bg-transparent outline-none resize-none max-h-40 font-medium"
                                     rows={1}
                                 />
-                                <div className="flex gap-1 pb-1.5 pr-1.5">
-                                    <label className="p-3 text-slate-500 cursor-pointer hover:bg-slate-200 rounded-2xl transition-colors">
-                                        <Icon name="image" />
-                                        <input 
-                                            type="file" 
-                                            className="hidden" 
-                                            accept="image/*"
-                                            onChange={e => processFile(e.target.files[0])} 
-                                        />
+                                <div className="flex gap-1 pb-1 pr-1">
+                                    <label className="p-3 text-slate-400 cursor-pointer hover:bg-slate-200 rounded-xl">
+                                        <Icon name="paperclip" />
+                                        <input type="file" className="hidden" accept="image/*" onChange={e => processFile(e.target.files[0])} />
                                     </label>
-                                    <Button 
-                                        onClick={solveMath} 
-                                        disabled={isLoading || (!query.trim() && !imagePreview)}
-                                        className="h-12 w-12 !p-0 rounded-2xl"
-                                    >
-                                        <Icon name="send" size={22} />
+                                    <Button onClick={solveMath} disabled={isLoading || (!query.trim() && !imagePreview)} className="h-12 w-12 !p-0 rounded-xl">
+                                        <Icon name="zap" size={22} />
                                     </Button>
                                 </div>
                             </div>
-                            <p className="text-center text-[10px] text-slate-400 mt-2 font-medium uppercase tracking-widest">
-                                Powered by Gemini 2.5 Flash
-                            </p>
                         </div>
                     </footer>
                 </div>
