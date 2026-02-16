@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digambar AI - Math Solver</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- KaTeX for Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+
+        .glass-modal {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+        }
+
+        .message-animation {
+            animation: slideUp 0.3s ease-out forwards;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .katex-display {
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 10px 0;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 h-screen overflow-hidden flex flex-col md:flex-row">
+
+    <!-- Sidebar (Desktop) -->
+    <aside class="hidden md:flex flex-col w-72 bg-white border-r border-slate-200 shrink-0">
+        <div class="p-6 border-b border-slate-200 flex items-center gap-3">
+            <div class="bg-blue-600 p-2 rounded-xl text-white">
+                <i data-lucide="brain-circuit"></i>
+            </div>
+            <h1 class="text-xl font-extrabold tracking-tight">Digambar AI</h1>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="history-container">
+            <div class="flex items-center gap-2 mb-4 text-slate-500 text-xs font-bold uppercase tracking-wider px-2">
+                <i data-lucide="history" class="w-4 h-4"></i>
+                <span>Recent Solves</span>
+            </div>
+            <div id="history-list" class="space-y-1">
+                <p class="text-center py-10 text-slate-400 text-xs italic">No history yet</p>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-slate-200">
+            <button onclick="toggleSettings(true)" class="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors text-slate-600 font-medium border border-transparent hover:border-slate-100 group">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="settings" class="group-hover:rotate-45 transition-transform duration-300"></i>
+                    <span>Settings</span>
+                </div>
+                <div id="key-status-dot" class="w-2 h-2 bg-red-500 rounded-full"></div>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Mobile Header -->
+    <header class="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200">
+        <div class="flex items-center gap-2">
+            <div class="bg-blue-600 p-1.5 rounded-lg text-white">
+                <i data-lucide="brain-circuit" class="w-5 h-5"></i>
+            </div>
+            <h1 class="text-lg font-bold">Digambar AI</h1>
+        </div>
+        <button onclick="toggleSettings(true)" class="p-2 text-slate-600">
+            <i data-lucide="settings"></i>
+        </button>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-full relative min-w-0">
+        
+        <!-- Chat Area -->
+        <div id="chat-window" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar">
+            <!-- Empty State -->
+            <div id="empty-state" class="h-full flex flex-col items-center justify-center max-w-xl mx-auto text-center space-y-6">
+                <div class="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center text-blue-600 animate-bounce">
+                    <i data-lucide="calculator" class="w-10 h-10"></i>
+                </div>
+                <div>
+                    <h2 class="text-3xl font-extrabold text-slate-800 mb-3">Math Solver AI</h2>
+                    <p class="text-slate-500 text-lg leading-relaxed">
+                        Enter your Google API Key in settings to start. Paste a problem image or type your equation below.
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+                    <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm text-left">
+                        <h3 class="font-bold text-slate-700 mb-1 text-sm flex items-center gap-2">
+                            <i data-lucide="plus-circle" class="w-4 h-4 text-blue-500"></i> Algebra
+                        </h3>
+                        <p class="text-xs text-slate-400 italic">"Solve for x: 5x + 10 = 50"</p>
+                    </div>
+                    <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm text-left">
+                        <h3 class="font-bold text-slate-700 mb-1 text-sm flex items-center gap-2">
+                            <i data-lucide="plus-circle" class="w-4 h-4 text-purple-500"></i> Trig
+                        </h3>
+                        <p class="text-xs text-slate-400 italic">"What is sin(π/3)?"</p>
+                    </div>
+                </div>
+            </div>
+            <div id="messages-list" class="max-w-4xl mx-auto space-y-6"></div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 md:p-6 bg-white border-t border-slate-200">
+            <div class="max-w-4xl mx-auto relative">
+                
+                <!-- Image Preview Popup -->
+                <div id="image-preview-container" class="hidden absolute bottom-full mb-4 left-0 bg-white p-2 rounded-2xl border border-slate-200 shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2">
+                    <img id="preview-img" src="" class="h-16 w-16 object-cover rounded-xl border border-slate-100" />
+                    <div class="pr-4">
+                        <p class="text-xs font-bold text-slate-700">Problem Attached</p>
+                        <button onclick="clearImage()" class="text-[10px] text-red-500 hover:underline">Remove</button>
+                    </div>
+                    <i data-lucide="x" class="w-4 h-4 cursor-pointer text-slate-400 hover:text-slate-600" onclick="clearImage()"></i>
+                </div>
+
+                <form id="solve-form" class="relative flex items-center bg-slate-100 rounded-3xl border border-slate-200 focus-within:border-blue-400 transition-all p-1 shadow-sm">
+                    <button type="button" onclick="triggerFileUpload()" class="p-3 text-slate-500 hover:text-blue-600 transition-colors" title="Upload Image">
+                        <i data-lucide="image"></i>
+                    </button>
+                    
+                    <input type="file" id="file-input" class="hidden" accept="image/*">
+
+                    <input
+                        type="text"
+                        id="user-input"
+                        placeholder="Type math problem or paste image..."
+                        class="flex-1 bg-transparent py-4 px-2 outline-none text-slate-800 placeholder:text-slate-400 text-sm md:text-base"
+                    >
+
+                    <button type="submit" id="submit-btn" class="p-3 rounded-2xl mr-1 transition-all bg-blue-600 text-white hover:bg-blue-700 shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                    </button>
+                </form>
+                <p class="text-[10px] text-center text-slate-400 mt-2">
+                    Digambar AI | Integrated Math Solver with Gemini
+                </p>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-extrabold text-slate-800">API Access</h3>
+                    <button onclick="toggleSettings(false)" class="p-1 hover:bg-slate-100 rounded-full transition-colors">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Google Gemini API Key</label>
+                        <div class="relative">
+                            <input 
+                                type="password"
+                                id="api-key-input"
+                                placeholder="Enter your key..."
+                                class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all pr-12"
+                            >
+                            <button type="button" onclick="togglePassword()" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                <i data-lucide="eye" class="w-5 h-5" id="eye-icon"></i>
+                            </button>
+                        </div>
+                        <p class="mt-3 text-[11px] text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200">
+                            Get your free key at <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 font-bold hover:underline">Google AI Studio</a>. Digambar AI runs locally; your key is never stored on our servers.
+                        </p>
+                    </div>
+
+                    <button onclick="saveApiKey()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-[0.98]">
+                        Authorize Digambar AI
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- State ---
+        let apiKey = localStorage.getItem('digambar_api_key') || '';
+        let currentImage = null; // { base64, mimeType }
+        const history = [];
+
+        // --- Init Lucide ---
+        lucide.createIcons();
+
+        // --- DOM Elements ---
+        const modal = document.getElementById('settings-modal');
+        const solveForm = document.getElementById('solve-form');
+        const userInput = document.getElementById('user-input');
+        const fileInput = document.getElementById('file-input');
+        const messagesList = document.getElementById('messages-list');
+        const emptyState = document.getElementById('empty-state');
+        const previewContainer = document.getElementById('image-preview-container');
+        const previewImg = document.getElementById('preview-img');
+        const keyInput = document.getElementById('api-key-input');
+        const keyDot = document.getElementById('key-status-dot');
+        const historyList = document.getElementById('history-list');
+
+        // --- Initialization ---
+        if (apiKey) {
+            keyInput.value = apiKey;
+            keyDot.classList.replace('bg-red-500', 'bg-green-500');
+        }
+
+        // --- UI Logic ---
+        function toggleSettings(show) {
+            modal.classList.toggle('hidden', !show);
+        }
+
+        function togglePassword() {
+            const type = keyInput.type === 'password' ? 'text' : 'password';
+            keyInput.type = type;
+            const iconName = type === 'password' ? 'eye' : 'eye-off';
+            document.getElementById('eye-icon').setAttribute('data-lucide', iconName);
+            lucide.createIcons();
+        }
+
+        function saveApiKey() {
+            apiKey = keyInput.value.trim();
+            localStorage.setItem('digambar_api_key', apiKey);
+            keyDot.classList.replace('bg-red-500', 'bg-green-500');
+            toggleSettings(false);
+        }
+
+        function triggerFileUpload() {
+            fileInput.click();
+        }
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleImageFile(file);
+        });
+
+        userInput.addEventListener('paste', (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (const item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    handleImageFile(item.getAsFile());
+                }
+            }
+        });
+
+        function handleImageFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentImage = {
+                    base64: e.target.result,
+                    mimeType: file.type
+                };
+                previewImg.src = e.target.result;
+                previewContainer.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearImage() {
+            currentImage = null;
+            previewContainer.classList.add('hidden');
+            fileInput.value = '';
+        }
+
+        // --- Message Handling ---
+        function appendMessage(role, text, imageBase64 = null) {
+            emptyState.classList.add('hidden');
+            const div = document.createElement('div');
+            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} message-animation`;
+            
+            const inner = document.createElement('div');
+            inner.className = `max-w-[90%] md:max-w-[80%] rounded-3xl p-5 shadow-sm ${
+                role === 'user' 
+                ? 'bg-blue-600 text-white rounded-tr-none' 
+                : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'
+            }`;
+
+            if (imageBase64) {
+                const img = document.createElement('img');
+                img.src = imageBase64;
+                img.className = "rounded-xl mb-3 max-h-64 object-contain border border-blue-400/30 w-full";
+                inner.appendChild(img);
+            }
+
+            const textDiv = document.createElement('div');
+            textDiv.className = "prose prose-slate max-w-none text-sm md:text-base leading-relaxed whitespace-pre-wrap";
+            textDiv.innerHTML = text;
+            inner.appendChild(textDiv);
+            
+            div.appendChild(inner);
+            messagesList.appendChild(div);
+            
+            // Auto-render LaTeX
+            if (role === 'assistant') {
+                renderMathInElement(textDiv, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+
+            document.getElementById('chat-window').scrollTo({
+                top: document.getElementById('chat-window').scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+
+        function addLoading() {
+            const div = document.createElement('div');
+            div.id = 'loading-bubble';
+            div.className = "flex justify-start message-animation";
+            div.innerHTML = `
+                <div class="bg-white border border-slate-200 rounded-3xl rounded-tl-none p-4 flex items-center gap-3">
+                    <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+                    <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    <span class="text-slate-400 font-bold text-xs uppercase ml-1">Thinking</span>
+                </div>
+            `;
+            messagesList.appendChild(div);
+            document.getElementById('chat-window').scrollTo({
+                top: document.getElementById('chat-window').scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+
+        function removeLoading() {
+            const loader = document.getElementById('loading-bubble');
+            if (loader) loader.remove();
+        }
+
+        // --- API & History ---
+        async function solveMath(prompt, imageData) {
+            if (!apiKey) {
+                toggleSettings(true);
+                return;
+            }
+
+            addLoading();
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: `System Instruction: You are 'Digambar AI', a master mathematician. 
+                        Provide a step-by-step solution to the problem. 
+                        CRITICAL: Use LaTeX for ALL math. 
+                        Wrap inline math in $ and equations in $$. 
+                        If provided an image, start by describing the problem you see.
+                        
+                        Problem: ${prompt || "Analyze and solve the mathematical content in the attached image."}` }
+                    ]
+                }]
+            };
+
+            if (imageData) {
+                payload.contents[0].parts.push({
+                    inlineData: {
+                        mimeType: imageData.mimeType,
+                        data: imageData.base64.split(',')[1]
+                    }
+                });
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error("API call failed.");
+
+                const data = await response.json();
+                const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't generate a solution.";
+                
+                removeLoading();
+                appendMessage('assistant', aiText);
+                updateHistory(prompt || "Image Problem");
+
+            } catch (err) {
+                removeLoading();
+                appendMessage('assistant', "❌ Error: Could not connect to the solver. Please check your API key.");
+            }
+        }
+
+        function updateHistory(title) {
+            const item = {
+                id: Date.now(),
+                title: title.length > 30 ? title.substring(0, 30) + "..." : title,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+            
+            history.unshift(item);
+            renderHistory();
+        }
+
+        function renderHistory() {
+            if (history.length === 0) return;
+            historyList.innerHTML = history.map(h => `
+                <button class="w-full text-left p-3 rounded-xl hover:bg-slate-50 transition-colors group flex flex-col gap-1 border border-transparent hover:border-slate-100">
+                    <span class="text-xs font-bold text-slate-700 truncate w-full">${h.title}</span>
+                    <span class="text-[10px] text-slate-400">${h.time}</span>
+                </button>
+            `).join('');
+        }
+
+        // --- Event Listeners ---
+        solveForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = userInput.value.trim();
+            if (!text && !currentImage) return;
+
+            const tempImage = currentImage ? currentImage.base64 : null;
+            const tempImageData = currentImage;
+
+            appendMessage('user', text, tempImage);
+            userInput.value = '';
+            clearImage();
+
+            solveMath(text, tempImageData);
+        });
+    </script>
+</body>
+</html>
