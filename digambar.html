@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <!-- Marked.js for Markdown Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -29,11 +31,6 @@
             border-radius: 10px;
         }
 
-        .glass-modal {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-        }
-
         .message-animation {
             animation: slideUp 0.3s ease-out forwards;
         }
@@ -43,10 +40,34 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* Markdown Styling inside bubbles */
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+            font-weight: 800;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            color: #1e293b;
+        }
+        .markdown-body h3 { font-size: 1.1rem; }
+        .markdown-body p { margin-bottom: 0.75rem; }
+        .markdown-body ul, .markdown-body ol { 
+            margin-left: 1.5rem; 
+            margin-bottom: 1rem;
+            list-style-type: disc;
+        }
+        .markdown-body strong { font-weight: 700; }
+        .markdown-body code {
+            background: #f1f5f9;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
         .katex-display {
             overflow-x: auto;
             overflow-y: hidden;
-            padding: 10px 0;
+            padding: 12px 0;
+            margin: 0.5rem 0;
         }
     </style>
 </head>
@@ -58,7 +79,7 @@
             <div class="bg-blue-600 p-2 rounded-xl text-white">
                 <i data-lucide="brain-circuit"></i>
             </div>
-            <h1 class="text-xl font-extrabold tracking-tight">Digambar AI</h1>
+            <h1 class="text-xl font-extrabold tracking-tight text-slate-800">Digambar AI</h1>
         </div>
         
         <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="history-container">
@@ -192,7 +213,7 @@
                             </button>
                         </div>
                         <p class="mt-3 text-[11px] text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200">
-                            Get your free key at <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 font-bold hover:underline">Google AI Studio</a>. Digambar AI runs locally; your key is never stored on our servers.
+                            Get your free key at <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 font-bold hover:underline">Google AI Studio</a>.
                         </p>
                     </div>
 
@@ -207,8 +228,14 @@
     <script>
         // --- State ---
         let apiKey = localStorage.getItem('digambar_api_key') || '';
-        let currentImage = null; // { base64, mimeType }
+        let currentImage = null; 
         const history = [];
+
+        // Configure Marked.js
+        marked.setOptions({
+            breaks: true,
+            gfm: true
+        });
 
         // --- Init Lucide ---
         lucide.createIcons();
@@ -293,7 +320,7 @@
         function appendMessage(role, text, imageBase64 = null) {
             emptyState.classList.add('hidden');
             const div = document.createElement('div');
-            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} message-animation`;
+            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} message-animation w-full`;
             
             const inner = document.createElement('div');
             inner.className = `max-w-[90%] md:max-w-[80%] rounded-3xl p-5 shadow-sm ${
@@ -305,21 +332,27 @@
             if (imageBase64) {
                 const img = document.createElement('img');
                 img.src = imageBase64;
-                img.className = "rounded-xl mb-3 max-h-64 object-contain border border-blue-400/30 w-full";
+                img.className = "rounded-xl mb-4 max-h-64 object-contain border border-blue-400/30 w-full";
                 inner.appendChild(img);
             }
 
-            const textDiv = document.createElement('div');
-            textDiv.className = "prose prose-slate max-w-none text-sm md:text-base leading-relaxed whitespace-pre-wrap";
-            textDiv.innerHTML = text;
-            inner.appendChild(textDiv);
+            const contentDiv = document.createElement('div');
+            contentDiv.className = role === 'assistant' ? "markdown-body" : "whitespace-pre-wrap text-sm md:text-base";
             
+            if (role === 'assistant') {
+                // Parse Markdown first
+                contentDiv.innerHTML = marked.parse(text);
+            } else {
+                contentDiv.textContent = text;
+            }
+            
+            inner.appendChild(contentDiv);
             div.appendChild(inner);
             messagesList.appendChild(div);
             
-            // Auto-render LaTeX
+            // Auto-render LaTeX after Markdown parsing
             if (role === 'assistant') {
-                renderMathInElement(textDiv, {
+                renderMathInElement(contentDiv, {
                     delimiters: [
                         {left: '$$', right: '$$', display: true},
                         {left: '$', right: '$', display: false}
@@ -328,8 +361,9 @@
                 });
             }
 
-            document.getElementById('chat-window').scrollTo({
-                top: document.getElementById('chat-window').scrollHeight,
+            const chatWindow = document.getElementById('chat-window');
+            chatWindow.scrollTo({
+                top: chatWindow.scrollHeight,
                 behavior: 'smooth'
             });
         }
@@ -339,16 +373,17 @@
             div.id = 'loading-bubble';
             div.className = "flex justify-start message-animation";
             div.innerHTML = `
-                <div class="bg-white border border-slate-200 rounded-3xl rounded-tl-none p-4 flex items-center gap-3">
-                    <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
-                    <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                    <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-                    <span class="text-slate-400 font-bold text-xs uppercase ml-1">Thinking</span>
+                <div class="bg-white border border-slate-200 rounded-3xl rounded-tl-none p-4 flex items-center gap-3 shadow-sm">
+                    <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce"></div>
+                    <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    <span class="text-slate-400 font-bold text-[10px] uppercase ml-1 tracking-widest">Calculating</span>
                 </div>
             `;
             messagesList.appendChild(div);
-            document.getElementById('chat-window').scrollTo({
-                top: document.getElementById('chat-window').scrollHeight,
+            const chatWindow = document.getElementById('chat-window');
+            chatWindow.scrollTo({
+                top: chatWindow.scrollHeight,
                 behavior: 'smooth'
             });
         }
@@ -374,9 +409,11 @@
                     parts: [
                         { text: `System Instruction: You are 'Digambar AI', a master mathematician. 
                         Provide a step-by-step solution to the problem. 
-                        CRITICAL: Use LaTeX for ALL math. 
-                        Wrap inline math in $ and equations in $$. 
-                        If provided an image, start by describing the problem you see.
+                        
+                        Formatting Rules:
+                        1. Use Markdown for structure (headers ###, bold **, lists -).
+                        2. Use LaTeX for ALL math. Wrap inline math in $ and equations/block math in $$.
+                        3. Be precise and clear.
                         
                         Problem: ${prompt || "Analyze and solve the mathematical content in the attached image."}` }
                     ]
@@ -410,14 +447,15 @@
 
             } catch (err) {
                 removeLoading();
-                appendMessage('assistant', "❌ Error: Could not connect to the solver. Please check your API key.");
+                appendMessage('assistant', "❌ **Error:** Could not connect to the solver. Please check your API key and connection.");
             }
         }
 
         function updateHistory(title) {
+            const cleanTitle = title.replace(/[#*`]/g, ''); // Remove md characters from sidebar
             const item = {
                 id: Date.now(),
-                title: title.length > 30 ? title.substring(0, 30) + "..." : title,
+                title: cleanTitle.length > 30 ? cleanTitle.substring(0, 30) + "..." : cleanTitle,
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
             
