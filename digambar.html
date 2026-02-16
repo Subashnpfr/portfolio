@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digambar AI - Math Solver</title>
+    <title>Digambar AI - Expert Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- KaTeX for Math Rendering -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -85,10 +85,10 @@
         <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="history-container">
             <div class="flex items-center gap-2 mb-4 text-slate-500 text-xs font-bold uppercase tracking-wider px-2">
                 <i data-lucide="history" class="w-4 h-4"></i>
-                <span>Recent Solves</span>
+                <span>Recent Activity</span>
             </div>
             <div id="history-list" class="space-y-1">
-                <p class="text-center py-10 text-slate-400 text-xs italic">No history yet</p>
+                <p class="text-center py-10 text-slate-400 text-xs italic">No activity yet</p>
             </div>
         </div>
 
@@ -124,26 +124,38 @@
             <!-- Empty State -->
             <div id="empty-state" class="h-full flex flex-col items-center justify-center max-w-xl mx-auto text-center space-y-6">
                 <div class="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center text-blue-600 animate-bounce">
-                    <i data-lucide="calculator" class="w-10 h-10"></i>
+                    <i data-lucide="sparkles" class="w-10 h-10"></i>
                 </div>
                 <div>
-                    <h2 class="text-3xl font-extrabold text-slate-800 mb-3">Math Solver AI</h2>
+                    <h2 class="text-3xl font-extrabold text-slate-800 mb-3">Expert AI Assistant</h2>
                     <p class="text-slate-500 text-lg leading-relaxed">
-                        Enter your Google API Key in settings to start. Paste a problem image or type your equation below.
+                        Welcome to **Digambar AI**. I can help you solve complex math, write creative essays, translate languages, or just have a chat.
                     </p>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                     <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm text-left">
                         <h3 class="font-bold text-slate-700 mb-1 text-sm flex items-center gap-2">
-                            <i data-lucide="plus-circle" class="w-4 h-4 text-blue-500"></i> Algebra
+                            <i data-lucide="calculator" class="w-4 h-4 text-blue-500"></i> Advanced Math
                         </h3>
-                        <p class="text-xs text-slate-400 italic">"Solve for x: 5x + 10 = 50"</p>
+                        <p class="text-xs text-slate-400 italic">"Find the derivative of x^2 * sin(x)"</p>
                     </div>
                     <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm text-left">
                         <h3 class="font-bold text-slate-700 mb-1 text-sm flex items-center gap-2">
-                            <i data-lucide="plus-circle" class="w-4 h-4 text-purple-500"></i> Trig
+                            <i data-lucide="pen-tool" class="w-4 h-4 text-orange-500"></i> Essay Writing
                         </h3>
-                        <p class="text-xs text-slate-400 italic">"What is sin(π/3)?"</p>
+                        <p class="text-xs text-slate-400 italic">"Write a short essay on AI ethics"</p>
+                    </div>
+                    <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm text-left">
+                        <h3 class="font-bold text-slate-700 mb-1 text-sm flex items-center gap-2">
+                            <i data-lucide="languages" class="w-4 h-4 text-green-500"></i> Languages
+                        </h3>
+                        <p class="text-xs text-slate-400 italic">"Translate 'Where is the library?' to French"</p>
+                    </div>
+                    <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm text-left">
+                        <h3 class="font-bold text-slate-700 mb-1 text-sm flex items-center gap-2">
+                            <i data-lucide="message-square" class="w-4 h-4 text-purple-500"></i> Greetings
+                        </h3>
+                        <p class="text-xs text-slate-400 italic">"Hi Digambar, how's your day?"</p>
                     </div>
                 </div>
             </div>
@@ -158,7 +170,7 @@
                 <div id="image-preview-container" class="hidden absolute bottom-full mb-4 left-0 bg-white p-2 rounded-2xl border border-slate-200 shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2">
                     <img id="preview-img" src="" class="h-16 w-16 object-cover rounded-xl border border-slate-100" />
                     <div class="pr-4">
-                        <p class="text-xs font-bold text-slate-700">Problem Attached</p>
+                        <p class="text-xs font-bold text-slate-700">Image Attached</p>
                         <button onclick="clearImage()" class="text-[10px] text-red-500 hover:underline">Remove</button>
                     </div>
                     <i data-lucide="x" class="w-4 h-4 cursor-pointer text-slate-400 hover:text-slate-600" onclick="clearImage()"></i>
@@ -174,7 +186,7 @@
                     <input
                         type="text"
                         id="user-input"
-                        placeholder="Type math problem or paste image..."
+                        placeholder="Ask Digambar anything..."
                         class="flex-1 bg-transparent py-4 px-2 outline-none text-slate-800 placeholder:text-slate-400 text-sm md:text-base"
                     >
 
@@ -183,7 +195,7 @@
                     </button>
                 </form>
                 <p class="text-[10px] text-center text-slate-400 mt-2">
-                    Digambar AI | Integrated Math Solver with Gemini
+                    Digambar AI | Your Multi-purpose Expert Assistant
                 </p>
             </div>
         </div>
@@ -377,7 +389,7 @@
                     <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce"></div>
                     <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
                     <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-                    <span class="text-slate-400 font-bold text-[10px] uppercase ml-1 tracking-widest">Calculating</span>
+                    <span class="text-slate-400 font-bold text-[10px] uppercase ml-1 tracking-widest">Digambar is thinking</span>
                 </div>
             `;
             messagesList.appendChild(div);
@@ -394,7 +406,7 @@
         }
 
         // --- API & History ---
-        async function solveMath(prompt, imageData) {
+        async function solveQuery(prompt, imageData) {
             if (!apiKey) {
                 toggleSettings(true);
                 return;
@@ -407,15 +419,18 @@
             const payload = {
                 contents: [{
                     parts: [
-                        { text: `System Instruction: You are 'Digambar AI', a master mathematician. 
-                        Provide a step-by-step solution to the problem. 
+                        { text: `System Instruction: You are 'Digambar AI', a highly intelligent and versatile expert assistant. 
+                        While you are a world-class master at mathematics, you are also an expert in languages, essay writing, coding, and general helpful conversation.
                         
-                        Formatting Rules:
-                        1. Use Markdown for structure (headers ###, bold **, lists -).
-                        2. Use LaTeX for ALL math. Wrap inline math in $ and equations/block math in $$.
-                        3. Be precise and clear.
+                        Behavior Rules:
+                        1. If the user says 'hi' or greets you, respond with a warm, friendly, and helpful greeting as Digambar AI.
+                        2. For math: Provide deep step-by-step solutions using LaTeX ($ for inline, $$ for blocks).
+                        3. For writing: Provide structured, creative, or analytical content with headers and clear points.
+                        4. For languages: Provide accurate translations and cultural context if needed.
+                        5. Use Markdown for structure (headers ###, bold **, lists -).
+                        6. Always remain professional and supportive.
                         
-                        Problem: ${prompt || "Analyze and solve the mathematical content in the attached image."}` }
+                        Query: ${prompt || "Analyze the attached image and provide the requested information."}` }
                     ]
                 }]
             };
@@ -439,20 +454,20 @@
                 if (!response.ok) throw new Error("API call failed.");
 
                 const data = await response.json();
-                const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't generate a solution.";
+                const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I apologize, but I couldn't generate a response.";
                 
                 removeLoading();
                 appendMessage('assistant', aiText);
-                updateHistory(prompt || "Image Problem");
+                updateHistory(prompt || "Image Analysis");
 
             } catch (err) {
                 removeLoading();
-                appendMessage('assistant', "❌ **Error:** Could not connect to the solver. Please check your API key and connection.");
+                appendMessage('assistant', "❌ **Error:** Could not connect to the assistant. Please check your API key and internet connection.");
             }
         }
 
         function updateHistory(title) {
-            const cleanTitle = title.replace(/[#*`]/g, ''); // Remove md characters from sidebar
+            const cleanTitle = title.replace(/[#*`]/g, ''); 
             const item = {
                 id: Date.now(),
                 title: cleanTitle.length > 30 ? cleanTitle.substring(0, 30) + "..." : cleanTitle,
@@ -486,7 +501,7 @@
             userInput.value = '';
             clearImage();
 
-            solveMath(text, tempImageData);
+            solveQuery(text, tempImageData);
         });
     </script>
 </body>
