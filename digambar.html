@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Digambar AI - Expert Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- KaTeX for Math Rendering -->
@@ -18,6 +18,7 @@
         
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .custom-scrollbar::-webkit-scrollbar {
@@ -27,16 +28,16 @@
             background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #e2e8f0;
+            background: #cbd5e1;
             border-radius: 10px;
         }
 
         .message-animation {
-            animation: slideUp 0.3s ease-out forwards;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(12px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
@@ -45,57 +46,81 @@
             font-weight: 800;
             margin-top: 1rem;
             margin-bottom: 0.5rem;
-            color: #1e293b;
+            color: #0f172a;
         }
         .markdown-body h3 { font-size: 1.1rem; }
         .markdown-body p { margin-bottom: 0.75rem; }
         .markdown-body ul, .markdown-body ol { 
-            margin-left: 1.5rem; 
+            margin-left: 1.25rem; 
             margin-bottom: 1rem;
             list-style-type: disc;
         }
         .markdown-body strong { font-weight: 700; }
-        .markdown-body code {
-            background: #f1f5f9;
-            padding: 0.2rem 0.4rem;
-            border-radius: 0.25rem;
-            font-family: monospace;
-            font-size: 0.9em;
-        }
-
+        
         .katex-display {
             overflow-x: auto;
             overflow-y: hidden;
-            padding: 12px 0;
+            padding: 8px 0;
             margin: 0.5rem 0;
+        }
+
+        #mobile-sidebar-overlay {
+            transition: opacity 0.3s ease;
+        }
+        #sidebar {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .quick-chip {
+            transition: all 0.2s ease;
+        }
+        .quick-chip:active {
+            transform: scale(0.95);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar-closed { transform: translateX(-100%); }
+            .sidebar-open { transform: translateX(0); }
         }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 h-screen overflow-hidden flex flex-col md:flex-row">
 
-    <!-- Sidebar (Desktop) -->
-    <aside class="hidden md:flex flex-col w-72 bg-white border-r border-slate-200 shrink-0">
-        <div class="p-6 border-b border-slate-200 flex items-center gap-3">
-            <div class="bg-blue-600 p-2 rounded-xl text-white">
-                <i data-lucide="brain-circuit"></i>
+    <!-- Mobile Sidebar Overlay -->
+    <div id="mobile-sidebar-overlay" onclick="toggleSidebar(false)" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden md:hidden opacity-0 transition-opacity"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-white border-r border-slate-200 z-50 transform sidebar-closed md:relative md:transform-none md:flex md:flex-col shrink-0 shadow-2xl md:shadow-none">
+        <div class="p-5 border-b border-slate-200 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-xl text-white">
+                    <i data-lucide="brain-circuit" class="w-6 h-6"></i>
+                </div>
+                <h1 class="text-xl font-extrabold tracking-tight text-slate-800">Digambar AI</h1>
             </div>
-            <h1 class="text-xl font-extrabold tracking-tight text-slate-800">Digambar AI</h1>
+            <button onclick="toggleSidebar(false)" class="md:hidden p-2 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x"></i>
+            </button>
         </div>
         
         <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="history-container">
-            <div class="flex items-center gap-2 mb-4 text-slate-500 text-xs font-bold uppercase tracking-wider px-2">
-                <i data-lucide="history" class="w-4 h-4"></i>
-                <span>Recent Activity</span>
+            <div class="flex items-center gap-2 mb-4 text-slate-500 text-[10px] font-black uppercase tracking-[0.1em] px-2">
+                <i data-lucide="history" class="w-3 h-3"></i>
+                <span>Activity Timeline</span>
             </div>
             <div id="history-list" class="space-y-1">
-                <p class="text-center py-10 text-slate-400 text-xs italic">No activity yet</p>
+                <p class="text-center py-10 text-slate-400 text-xs italic px-4">Your solved problems and chats will appear here.</p>
             </div>
         </div>
 
-        <div class="p-4 border-t border-slate-200">
-            <button onclick="toggleSettings(true)" class="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors text-slate-600 font-medium border border-transparent hover:border-slate-100 group">
-                <div class="flex items-center gap-2">
-                    <i data-lucide="settings" class="group-hover:rotate-45 transition-transform duration-300"></i>
+        <div class="p-4 border-t border-slate-200 bg-slate-50/50 space-y-2">
+            <button onclick="clearAllChat()" class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 transition-colors text-slate-600 hover:text-red-600 text-sm font-semibold">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                <span>Clear Session</span>
+            </button>
+            <button onclick="toggleSettings(true)" class="w-full flex items-center justify-between p-3 rounded-xl hover:bg-white transition-colors text-slate-600 font-semibold border border-transparent hover:border-slate-200 group text-sm">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="settings" class="w-4 h-4 group-hover:rotate-45 transition-transform duration-300"></i>
                     <span>Settings</span>
                 </div>
                 <div id="key-status-dot" class="w-2 h-2 bg-red-500 rounded-full"></div>
@@ -103,147 +128,187 @@
         </div>
     </aside>
 
-    <!-- Mobile Header -->
-    <header class="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200">
-        <div class="flex items-center gap-2">
-            <div class="bg-blue-600 p-1.5 rounded-lg text-white">
-                <i data-lucide="brain-circuit" class="w-5 h-5"></i>
-            </div>
-            <h1 class="text-lg font-bold">Digambar AI</h1>
-        </div>
-        <button onclick="toggleSettings(true)" class="p-2 text-slate-600">
-            <i data-lucide="settings"></i>
-        </button>
-    </header>
-
     <!-- Main Content Area -->
     <main class="flex-1 flex flex-col h-full relative min-w-0">
         
+        <!-- Navbar -->
+        <header class="flex items-center justify-between p-4 bg-white border-b border-slate-200 z-10 sticky top-0 shadow-sm md:shadow-none">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar(true)" class="md:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-50 rounded-lg">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="hidden md:flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-bold border border-blue-100 uppercase tracking-wide">
+                    <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse"></div>
+                    Online
+                </div>
+                <h1 class="md:hidden text-lg font-bold">Digambar AI</h1>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <button onclick="window.print()" class="hidden sm:flex p-2 text-slate-500 hover:bg-slate-50 rounded-lg" title="Print/Save PDF">
+                    <i data-lucide="printer" class="w-5 h-5"></i>
+                </button>
+                <button onclick="toggleSettings(true)" class="md:hidden p-2 text-slate-500">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </header>
+
         <!-- Chat Area -->
-        <div id="chat-window" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar">
+        <div id="chat-window" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar pb-32">
             <!-- Empty State -->
-            <div id="empty-state" class="h-full flex flex-col items-center justify-center max-w-xl mx-auto text-center space-y-6">
-                <div class="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center text-blue-600 animate-bounce">
-                    <i data-lucide="sparkles" class="w-10 h-10"></i>
+            <div id="empty-state" class="h-full flex flex-col items-center justify-center max-w-xl mx-auto text-center space-y-8 py-10">
+                <div class="relative">
+                    <div class="w-24 h-24 bg-blue-600 rounded-[2.5rem] flex items-center justify-center text-white shadow-2xl shadow-blue-200 animate-bounce">
+                        <i data-lucide="sparkles" class="w-12 h-12"></i>
+                    </div>
+                    <div class="absolute -top-2 -right-2 bg-orange-400 text-white text-[10px] font-black px-2 py-1 rounded-full border-4 border-slate-50 uppercase tracking-tighter">New</div>
                 </div>
                 <div>
-                    <h2 class="text-3xl font-extrabold text-slate-800 mb-3">Expert AI Assistant</h2>
-                    <p class="text-slate-500 text-lg leading-relaxed">
-                        Welcome to **Digambar AI**. I can help you solve complex math, write creative essays, translate languages, or just have a chat.
+                    <h2 class="text-4xl font-extrabold text-slate-800 mb-4 tracking-tight">How can I help you?</h2>
+                    <p class="text-slate-500 text-lg leading-relaxed px-6">
+                        Expert guidance for Math, Science, and Languages. Upload a photo or just say 'Hi'.
                     </p>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-                    <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm text-left">
-                        <h3 class="font-bold text-slate-700 mb-1 text-sm flex items-center gap-2">
-                            <i data-lucide="calculator" class="w-4 h-4 text-blue-500"></i> Advanced Math
-                        </h3>
-                        <p class="text-xs text-slate-400 italic">"Find the derivative of x^2 * sin(x)"</p>
-                    </div>
-                    <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm text-left">
-                        <h3 class="font-bold text-slate-700 mb-1 text-sm flex items-center gap-2">
-                            <i data-lucide="pen-tool" class="w-4 h-4 text-orange-500"></i> Essay Writing
-                        </h3>
-                        <p class="text-xs text-slate-400 italic">"Write a short essay on AI ethics"</p>
-                    </div>
-                    <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm text-left">
-                        <h3 class="font-bold text-slate-700 mb-1 text-sm flex items-center gap-2">
-                            <i data-lucide="languages" class="w-4 h-4 text-green-500"></i> Languages
-                        </h3>
-                        <p class="text-xs text-slate-400 italic">"Translate 'Where is the library?' to French"</p>
-                    </div>
-                    <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm text-left">
-                        <h3 class="font-bold text-slate-700 mb-1 text-sm flex items-center gap-2">
-                            <i data-lucide="message-square" class="w-4 h-4 text-purple-500"></i> Greetings
-                        </h3>
-                        <p class="text-xs text-slate-400 italic">"Hi Digambar, how's your day?"</p>
-                    </div>
+                <div class="grid grid-cols-2 gap-3 w-full max-w-lg px-4">
+                    <button onclick="setQuery('Solve: 2x + 5 = 15')" class="quick-chip p-4 bg-white rounded-2xl border border-slate-200 shadow-sm text-left hover:border-blue-400 hover:shadow-md transition-all">
+                        <i data-lucide="calculator" class="w-5 h-5 text-blue-500 mb-2"></i>
+                        <p class="text-xs font-bold text-slate-700">Solve Algebra</p>
+                    </button>
+                    <button onclick="setQuery('Write a short essay on Solar Energy')" class="quick-chip p-4 bg-white rounded-2xl border border-slate-200 shadow-sm text-left hover:border-orange-400 hover:shadow-md transition-all">
+                        <i data-lucide="pen-tool" class="w-5 h-5 text-orange-500 mb-2"></i>
+                        <p class="text-xs font-bold text-slate-700">Write Essay</p>
+                    </button>
                 </div>
             </div>
             <div id="messages-list" class="max-w-4xl mx-auto space-y-6"></div>
         </div>
 
-        <!-- Input Area -->
-        <div class="p-4 md:p-6 bg-white border-t border-slate-200">
+        <!-- Sticky Input Area -->
+        <div class="fixed bottom-0 left-0 right-0 md:left-72 p-4 md:p-6 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent">
             <div class="max-w-4xl mx-auto relative">
                 
                 <!-- Image Preview Popup -->
                 <div id="image-preview-container" class="hidden absolute bottom-full mb-4 left-0 bg-white p-2 rounded-2xl border border-slate-200 shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2">
                     <img id="preview-img" src="" class="h-16 w-16 object-cover rounded-xl border border-slate-100" />
                     <div class="pr-4">
-                        <p class="text-xs font-bold text-slate-700">Image Attached</p>
-                        <button onclick="clearImage()" class="text-[10px] text-red-500 hover:underline">Remove</button>
+                        <p class="text-xs font-bold text-slate-700">Attachment Ready</p>
+                        <button onclick="clearImage()" class="text-[10px] text-red-500 hover:underline">Discard</button>
                     </div>
                     <i data-lucide="x" class="w-4 h-4 cursor-pointer text-slate-400 hover:text-slate-600" onclick="clearImage()"></i>
                 </div>
 
-                <form id="solve-form" class="relative flex items-center bg-slate-100 rounded-3xl border border-slate-200 focus-within:border-blue-400 transition-all p-1 shadow-sm">
-                    <button type="button" onclick="triggerFileUpload()" class="p-3 text-slate-500 hover:text-blue-600 transition-colors" title="Upload Image">
-                        <i data-lucide="image"></i>
+                <div class="flex items-center gap-2 mb-3 px-2 overflow-x-auto custom-scrollbar no-scrollbar">
+                    <button onclick="setQuery('Translate this to Spanish: ')" class="whitespace-nowrap bg-white border border-slate-200 text-slate-600 text-[10px] font-bold py-1.5 px-3 rounded-full hover:border-blue-300 transition-colors">Translate</button>
+                    <button onclick="setQuery('Summarize this text: ')" class="whitespace-nowrap bg-white border border-slate-200 text-slate-600 text-[10px] font-bold py-1.5 px-3 rounded-full hover:border-blue-300 transition-colors">Summarize</button>
+                    <button onclick="setQuery('Explain the concept of: ')" class="whitespace-nowrap bg-white border border-slate-200 text-slate-600 text-[10px] font-bold py-1.5 px-3 rounded-full hover:border-blue-300 transition-colors">Explain</button>
+                </div>
+
+                <form id="solve-form" class="relative flex items-center bg-white rounded-3xl border border-slate-200 focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-100 transition-all p-1.5 shadow-lg">
+                    <button type="button" onclick="triggerFileUpload()" class="p-3 text-slate-400 hover:text-blue-600 transition-colors" title="Upload Photo">
+                        <i data-lucide="camera" class="w-6 h-6"></i>
                     </button>
                     
-                    <input type="file" id="file-input" class="hidden" accept="image/*">
+                    <input type="file" id="file-input" class="hidden" accept="image/*" capture="environment">
 
                     <input
                         type="text"
                         id="user-input"
-                        placeholder="Ask Digambar anything..."
-                        class="flex-1 bg-transparent py-4 px-2 outline-none text-slate-800 placeholder:text-slate-400 text-sm md:text-base"
+                        autocomplete="off"
+                        placeholder="Ask me anything..."
+                        class="flex-1 bg-transparent py-3 md:py-4 px-2 outline-none text-slate-800 placeholder:text-slate-400 text-base"
                     >
 
-                    <button type="submit" id="submit-btn" class="p-3 rounded-2xl mr-1 transition-all bg-blue-600 text-white hover:bg-blue-700 shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <i data-lucide="send" class="w-5 h-5"></i>
-                    </button>
+                    <div class="flex items-center gap-1">
+                        <button type="button" id="mic-btn" onclick="toggleVoiceRecognition()" class="p-3 text-slate-400 hover:text-red-500 transition-colors rounded-xl hover:bg-slate-50">
+                            <i data-lucide="mic" class="w-5 h-5"></i>
+                        </button>
+                        <button type="submit" id="submit-btn" class="p-3 md:p-4 rounded-2xl transition-all bg-blue-600 text-white hover:bg-blue-700 shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                        </button>
+                    </div>
                 </form>
-                <p class="text-[10px] text-center text-slate-400 mt-2">
-                    Digambar AI | Your Multi-purpose Expert Assistant
-                </p>
             </div>
         </div>
 
         <!-- Settings Modal -->
-        <div id="settings-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-2xl font-extrabold text-slate-800">API Access</h3>
-                    <button onclick="toggleSettings(false)" class="p-1 hover:bg-slate-100 rounded-full transition-colors">
+        <div id="settings-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-8 animate-in zoom-in-95 duration-200">
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h3 class="text-2xl font-black text-slate-800 tracking-tight">Configuration</h3>
+                        <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Digambar Control Center</p>
+                    </div>
+                    <button onclick="toggleSettings(false)" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full transition-colors">
                         <i data-lucide="x" class="w-6 h-6"></i>
                     </button>
                 </div>
                 
-                <div class="space-y-5">
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">Google Gemini API Key</label>
+                <div class="space-y-6">
+                    <div class="p-5 bg-blue-50/50 rounded-3xl border border-blue-100">
+                        <label class="block text-xs font-black text-blue-900 mb-3 uppercase tracking-wider">Your Gemini API Key</label>
                         <div class="relative">
                             <input 
                                 type="password"
                                 id="api-key-input"
-                                placeholder="Enter your key..."
-                                class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 outline-none transition-all pr-12"
+                                placeholder="Paste key here..."
+                                class="w-full bg-white border border-blue-200 rounded-2xl p-4 focus:ring-4 focus:ring-blue-100 outline-none transition-all pr-12 text-sm font-mono"
                             >
                             <button type="button" onclick="togglePassword()" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                                 <i data-lucide="eye" class="w-5 h-5" id="eye-icon"></i>
                             </button>
                         </div>
-                        <p class="mt-3 text-[11px] text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200">
-                            Get your free key at <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 font-bold hover:underline">Google AI Studio</a>.
-                        </p>
+                        <div class="mt-4 flex gap-2">
+                             <a href="https://aistudio.google.com/app/apikey" target="_blank" class="flex-1 bg-white text-blue-600 text-center py-2.5 rounded-xl border border-blue-200 text-[10px] font-black uppercase tracking-wider hover:bg-blue-50 transition-colors">Get Free Key</a>
+                             <button onclick="saveApiKey()" class="flex-[2] bg-blue-600 text-white py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider shadow-lg shadow-blue-200 active:scale-95">Save Changes</button>
+                        </div>
                     </div>
 
-                    <button onclick="saveApiKey()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-[0.98]">
-                        Authorize Digambar AI
-                    </button>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Status</p>
+                            <p id="status-text" class="text-sm font-bold text-red-500">Unconfigured</p>
+                        </div>
+                        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Model</p>
+                            <p class="text-sm font-bold text-slate-700">Gemini 2.5 Flash</p>
+                        </div>
+                    </div>
+
+                    <p class="text-[10px] text-center text-slate-400 font-medium px-4">
+                        Data remains in your browser. Clearing cookies will remove history and API settings.
+                    </p>
                 </div>
             </div>
         </div>
     </main>
 
     <script>
-        // --- State ---
+        // --- State Management ---
         let apiKey = localStorage.getItem('digambar_api_key') || '';
         let currentImage = null; 
-        const history = [];
+        let history = JSON.parse(localStorage.getItem('digambar_history')) || [];
+        let isRecording = false;
+        let recognition = null;
 
-        // Configure Marked.js
+        // Initialize Speech Recognition
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                userInput.value = text;
+                toggleVoiceRecognition(false);
+            };
+
+            recognition.onerror = () => toggleVoiceRecognition(false);
+            recognition.onend = () => toggleVoiceRecognition(false);
+        }
+
+        // --- Configure Marked.js ---
         marked.setOptions({
             breaks: true,
             gfm: true
@@ -253,6 +318,8 @@
         lucide.createIcons();
 
         // --- DOM Elements ---
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('mobile-sidebar-overlay');
         const modal = document.getElementById('settings-modal');
         const solveForm = document.getElementById('solve-form');
         const userInput = document.getElementById('user-input');
@@ -264,14 +331,33 @@
         const keyInput = document.getElementById('api-key-input');
         const keyDot = document.getElementById('key-status-dot');
         const historyList = document.getElementById('history-list');
+        const statusText = document.getElementById('status-text');
 
         // --- Initialization ---
         if (apiKey) {
             keyInput.value = apiKey;
             keyDot.classList.replace('bg-red-500', 'bg-green-500');
+            statusText.textContent = "Authorized";
+            statusText.classList.replace('text-red-500', 'text-green-500');
+        }
+        renderHistory();
+
+        // --- Core Functions ---
+
+        function toggleSidebar(show) {
+            if (show) {
+                sidebar.classList.remove('sidebar-closed');
+                sidebar.classList.add('sidebar-open');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.add('opacity-100'), 10);
+            } else {
+                sidebar.classList.add('sidebar-closed');
+                sidebar.classList.remove('sidebar-open');
+                overlay.classList.remove('opacity-100');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
         }
 
-        // --- UI Logic ---
         function toggleSettings(show) {
             modal.classList.toggle('hidden', !show);
         }
@@ -287,7 +373,11 @@
         function saveApiKey() {
             apiKey = keyInput.value.trim();
             localStorage.setItem('digambar_api_key', apiKey);
-            keyDot.classList.replace('bg-red-500', 'bg-green-500');
+            if (apiKey) {
+                keyDot.classList.replace('bg-red-500', 'bg-green-500');
+                statusText.textContent = "Authorized";
+                statusText.classList.replace('text-red-500', 'text-green-500');
+            }
             toggleSettings(false);
         }
 
@@ -328,14 +418,39 @@
             fileInput.value = '';
         }
 
-        // --- Message Handling ---
+        function setQuery(text) {
+            userInput.value = text;
+            userInput.focus();
+        }
+
+        function toggleVoiceRecognition(forceState) {
+            if (!recognition) {
+                appendMessage('assistant', "Voice recognition is not supported in this browser.");
+                return;
+            }
+            
+            isRecording = forceState !== undefined ? forceState : !isRecording;
+            const micBtn = document.getElementById('mic-btn');
+            
+            if (isRecording) {
+                recognition.start();
+                micBtn.classList.add('text-red-500', 'animate-pulse');
+            } else {
+                recognition.stop();
+                micBtn.classList.remove('text-red-500', 'animate-pulse');
+            }
+        }
+
+        // --- Chat UI Management ---
+
         function appendMessage(role, text, imageBase64 = null) {
             emptyState.classList.add('hidden');
+            const messageId = "msg-" + Date.now();
             const div = document.createElement('div');
-            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} message-animation w-full`;
+            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} message-animation w-full px-2`;
             
             const inner = document.createElement('div');
-            inner.className = `max-w-[90%] md:max-w-[80%] rounded-3xl p-5 shadow-sm ${
+            inner.className = `max-w-[92%] md:max-w-[85%] rounded-[1.75rem] p-4 md:p-6 shadow-sm relative group ${
                 role === 'user' 
                 ? 'bg-blue-600 text-white rounded-tr-none' 
                 : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'
@@ -344,16 +459,22 @@
             if (imageBase64) {
                 const img = document.createElement('img');
                 img.src = imageBase64;
-                img.className = "rounded-xl mb-4 max-h-64 object-contain border border-blue-400/30 w-full";
+                img.className = "rounded-2xl mb-4 max-h-72 object-contain border border-blue-400/30 w-full bg-slate-50";
                 inner.appendChild(img);
             }
 
             const contentDiv = document.createElement('div');
-            contentDiv.className = role === 'assistant' ? "markdown-body" : "whitespace-pre-wrap text-sm md:text-base";
+            contentDiv.className = role === 'assistant' ? "markdown-body" : "whitespace-pre-wrap text-[15px] md:text-base leading-relaxed";
             
             if (role === 'assistant') {
-                // Parse Markdown first
                 contentDiv.innerHTML = marked.parse(text);
+                
+                // Add Copy Button
+                const copyBtn = document.createElement('button');
+                copyBtn.className = "absolute -bottom-10 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[10px] font-black uppercase text-slate-500 hover:text-blue-600 shadow-sm";
+                copyBtn.innerHTML = `<i data-lucide="copy" class="w-3 h-3"></i> Copy Solution`;
+                copyBtn.onclick = () => copyText(text, copyBtn);
+                inner.appendChild(copyBtn);
             } else {
                 contentDiv.textContent = text;
             }
@@ -362,7 +483,6 @@
             div.appendChild(inner);
             messagesList.appendChild(div);
             
-            // Auto-render LaTeX after Markdown parsing
             if (role === 'assistant') {
                 renderMathInElement(contentDiv, {
                     delimiters: [
@@ -371,33 +491,48 @@
                     ],
                     throwOnError: false
                 });
+                lucide.createIcons();
             }
 
-            const chatWindow = document.getElementById('chat-window');
-            chatWindow.scrollTo({
-                top: chatWindow.scrollHeight,
-                behavior: 'smooth'
-            });
+            scrollToBottom();
+        }
+
+        function copyText(text, btn) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                const originalContent = btn.innerHTML;
+                btn.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-green-500"></i> Copied!`;
+                lucide.createIcons();
+                setTimeout(() => {
+                    btn.innerHTML = originalContent;
+                    lucide.createIcons();
+                }, 2000);
+            } catch (err) {
+                console.error('Copy failed', err);
+            }
+            document.body.removeChild(textArea);
         }
 
         function addLoading() {
             const div = document.createElement('div');
             div.id = 'loading-bubble';
-            div.className = "flex justify-start message-animation";
+            div.className = "flex justify-start message-animation px-2";
             div.innerHTML = `
                 <div class="bg-white border border-slate-200 rounded-3xl rounded-tl-none p-4 flex items-center gap-3 shadow-sm">
-                    <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce"></div>
-                    <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                    <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-                    <span class="text-slate-400 font-bold text-[10px] uppercase ml-1 tracking-widest">Digambar is thinking</span>
+                    <div class="flex gap-1">
+                        <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+                        <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                        <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    </div>
+                    <span class="text-slate-400 font-black text-[9px] uppercase tracking-widest">Digambar is solving</span>
                 </div>
             `;
             messagesList.appendChild(div);
-            const chatWindow = document.getElementById('chat-window');
-            chatWindow.scrollTo({
-                top: chatWindow.scrollHeight,
-                behavior: 'smooth'
-            });
+            scrollToBottom();
         }
 
         function removeLoading() {
@@ -405,7 +540,16 @@
             if (loader) loader.remove();
         }
 
-        // --- API & History ---
+        function scrollToBottom() {
+            const chatWindow = document.getElementById('chat-window');
+            chatWindow.scrollTo({
+                top: chatWindow.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+
+        // --- Logic & API ---
+
         async function solveQuery(prompt, imageData) {
             if (!apiKey) {
                 toggleSettings(true);
@@ -419,18 +563,18 @@
             const payload = {
                 contents: [{
                     parts: [
-                        { text: `System Instruction: You are 'Digambar AI', a highly intelligent and versatile expert assistant. 
-                        While you are a world-class master at mathematics, you are also an expert in languages, essay writing, coding, and general helpful conversation.
+                        { text: `System Instruction: You are 'Digambar AI', an elite expert assistant. 
+                        Expertise: High-level Mathematics, Creative Writing, Language Translation, and Science.
                         
-                        Behavior Rules:
-                        1. If the user says 'hi' or greets you, respond with a warm, friendly, and helpful greeting as Digambar AI.
-                        2. For math: Provide deep step-by-step solutions using LaTeX ($ for inline, $$ for blocks).
-                        3. For writing: Provide structured, creative, or analytical content with headers and clear points.
-                        4. For languages: Provide accurate translations and cultural context if needed.
-                        5. Use Markdown for structure (headers ###, bold **, lists -).
-                        6. Always remain professional and supportive.
+                        Tone: Helpful, pedagogical, and professional.
                         
-                        Query: ${prompt || "Analyze the attached image and provide the requested information."}` }
+                        Formatting Requirements:
+                        1. Structure your answers with Markdown headers (###).
+                        2. ALWAYS use LaTeX for math equations. Inline math goes in single $, block math in $$.
+                        3. For complex problems, provide a 'Concept Summary' at the end.
+                        4. If an image is provided, start by accurately transcribing what is visible.
+                        
+                        Query: ${prompt || "Analyze and explain the mathematical/visual content in the image."}` }
                     ]
                 }]
             };
@@ -454,15 +598,15 @@
                 if (!response.ok) throw new Error("API call failed.");
 
                 const data = await response.json();
-                const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I apologize, but I couldn't generate a response.";
+                const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I was unable to process this request.";
                 
                 removeLoading();
                 appendMessage('assistant', aiText);
-                updateHistory(prompt || "Image Analysis");
+                updateHistory(prompt || "Visual Query");
 
             } catch (err) {
                 removeLoading();
-                appendMessage('assistant', "❌ **Error:** Could not connect to the assistant. Please check your API key and internet connection.");
+                appendMessage('assistant', "❌ **System Error:** Connection to Digambar Brain failed. Ensure your API Key is correct and your internet is active.");
             }
         }
 
@@ -470,22 +614,33 @@
             const cleanTitle = title.replace(/[#*`]/g, ''); 
             const item = {
                 id: Date.now(),
-                title: cleanTitle.length > 30 ? cleanTitle.substring(0, 30) + "..." : cleanTitle,
+                title: cleanTitle.length > 35 ? cleanTitle.substring(0, 35) + "..." : cleanTitle,
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
             
             history.unshift(item);
+            if (history.length > 20) history.pop(); // Keep history manageable
+            localStorage.setItem('digambar_history', JSON.stringify(history));
             renderHistory();
         }
 
         function renderHistory() {
             if (history.length === 0) return;
             historyList.innerHTML = history.map(h => `
-                <button class="w-full text-left p-3 rounded-xl hover:bg-slate-50 transition-colors group flex flex-col gap-1 border border-transparent hover:border-slate-100">
-                    <span class="text-xs font-bold text-slate-700 truncate w-full">${h.title}</span>
-                    <span class="text-[10px] text-slate-400">${h.time}</span>
+                <button onclick="setQuery('${h.title}')" class="w-full text-left p-4 rounded-2xl hover:bg-slate-50 transition-colors group flex flex-col gap-1 border border-transparent hover:border-slate-100">
+                    <span class="text-xs font-extrabold text-slate-700 truncate w-full">${h.title}</span>
+                    <span class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">${h.time}</span>
                 </button>
             `).join('');
+        }
+
+        function clearAllChat() {
+            messagesList.innerHTML = '';
+            emptyState.classList.remove('hidden');
+            history = [];
+            localStorage.removeItem('digambar_history');
+            renderHistory();
+            toggleSidebar(false);
         }
 
         // --- Event Listeners ---
@@ -502,6 +657,15 @@
             clearImage();
 
             solveQuery(text, tempImageData);
+        });
+
+        // Close sidebar on window resize if switching to desktop
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                overlay.classList.add('hidden');
+                sidebar.classList.remove('sidebar-open');
+                sidebar.classList.remove('sidebar-closed');
+            }
         });
     </script>
 </body>
