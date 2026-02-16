@@ -66,7 +66,7 @@
             color: #1e293b;
             font-weight: 800;
             background: #eff6ff;
-            padding: 1px 4px;
+            padding: 2px 4px;
             border-radius: 4px;
         }
         .markdown-body ul, .markdown-body ol {
@@ -116,10 +116,11 @@
         }
         .result-card .markdown-body p {
             color: #0c4a6e;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 17px;
         }
 
+        /* Sidebar Transition Logic */
         #sidebar {
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -128,23 +129,35 @@
             .sidebar-closed { transform: translateX(-100%); }
             .sidebar-open { transform: translateX(0); }
         }
+
+        /* Chips styling */
+        .chip {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .chip:hover {
+            transform: translateY(-2px);
+        }
+        .chip:active {
+            transform: translateY(0) scale(0.95);
+        }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col md:flex-row">
 
     <!-- Mobile Sidebar Backdrop -->
-    <div id="sidebar-overlay" onclick="toggleSidebar(false)" class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-40 hidden md:hidden"></div>
+    <div id="sidebar-overlay" onclick="toggleSidebar(false)" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden md:hidden transition-opacity duration-300"></div>
 
     <!-- Minimal Sidebar -->
-    <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-white border-r border-slate-200 z-50 transform sidebar-closed md:relative md:transform-none md:flex md:flex-col shadow-xl md:shadow-none">
-        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-[80%] md:w-72 bg-white border-r border-slate-200 z-50 transform sidebar-closed md:relative md:transform-none md:flex md:flex-col shadow-xl md:shadow-none">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0">
             <div class="flex items-center gap-3">
                 <div class="bg-slate-900 p-2 rounded-xl text-white">
                     <i data-lucide="brain-circuit" class="w-5 h-5"></i>
                 </div>
                 <h1 class="text-lg font-extrabold tracking-tight text-slate-800">Digambar</h1>
             </div>
-            <button onclick="toggleSidebar(false)" class="md:hidden p-2 text-slate-400">
+            <button onclick="toggleSidebar(false)" class="md:hidden p-2 text-slate-400 hover:bg-slate-50 rounded-lg">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </div>
@@ -163,7 +176,7 @@
             </button>
             <button onclick="toggleSettings(true)" class="w-full flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-sm text-slate-700 text-xs font-bold hover:bg-slate-50 transition-all">
                 <div class="flex items-center gap-3">
-                    <i data-lucide="settings" class="w-4 h-4"></i>
+                    <i data-lucide="settings" class="w-4 h-4 text-blue-600"></i>
                     <span>Control Panel</span>
                 </div>
                 <div id="key-dot" class="w-2 h-2 bg-red-500 rounded-full"></div>
@@ -172,29 +185,29 @@
     </aside>
 
     <!-- Main Workspace -->
-    <main class="flex-1 flex flex-col h-full min-w-0 bg-slate-50">
+    <main class="flex-1 flex flex-col h-full min-w-0 bg-slate-50 relative">
         
         <!-- Navbar -->
-        <header class="h-16 flex items-center justify-between px-4 md:px-8 bg-white border-b border-slate-200 sticky top-0 z-10">
+        <header class="h-16 flex items-center justify-between px-4 md:px-8 bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
             <div class="flex items-center gap-4">
-                <button onclick="toggleSidebar(true)" class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg md:hidden">
+                <button onclick="toggleSidebar(true)" class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg md:hidden transition-colors">
                     <i data-lucide="menu"></i>
                 </button>
                 <div class="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
-                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                    Ready to Solve
+                    <div id="status-pulse" class="w-2 h-2 bg-slate-400 rounded-full"></div>
+                    <span id="status-text">Ready to Solve</span>
                 </div>
             </div>
             <div class="flex items-center gap-3">
                 <button onclick="window.print()" class="p-2 text-slate-400 hover:text-slate-900 transition-colors hidden sm:block">
                     <i data-lucide="printer" class="w-5 h-5"></i>
                 </button>
-                <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold">AI</div>
+                <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-bold text-white shadow-lg shadow-blue-100">AI</div>
             </div>
         </header>
 
         <!-- Chat Area -->
-        <div id="chat-window" class="flex-1 overflow-y-auto p-4 md:p-12 space-y-12 custom-scrollbar pb-40">
+        <div id="chat-window" class="flex-1 overflow-y-auto p-4 md:p-12 space-y-12 custom-scrollbar pb-56">
             <!-- Landing View -->
             <div id="empty-state" class="h-full flex flex-col items-center justify-center max-w-sm mx-auto text-center space-y-8">
                 <div class="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center text-white shadow-2xl">
@@ -207,8 +220,8 @@
                     </p>
                 </div>
                 <div class="w-full space-y-2">
-                    <button onclick="setQuery('Solve: 3x^2 - 12x + 9 = 0')" class="w-full p-4 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-600 hover:border-slate-900 transition-all">Algebra Sample</button>
-                    <button onclick="setQuery('Explain the law of universal gravitation')" class="w-full p-4 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-600 hover:border-slate-900 transition-all">Physics Sample</button>
+                    <button onclick="setQuery('Solve: 3x^2 - 12x + 9 = 0')" class="w-full p-4 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-600 hover:border-slate-900 transition-all shadow-sm">Algebra Sample</button>
+                    <button onclick="setQuery('Explain the law of universal gravitation')" class="w-full p-4 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-600 hover:border-slate-900 transition-all shadow-sm">Physics Sample</button>
                 </div>
             </div>
             <div id="messages-list" class="max-w-3xl mx-auto space-y-12"></div>
@@ -218,10 +231,18 @@
         <div class="fixed bottom-0 left-0 right-0 md:left-72 p-4 md:p-8 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent z-30">
             <div class="max-w-3xl mx-auto relative">
                 
+                <!-- Quick Chips -->
+                <div id="chips-container" class="flex items-center gap-2 mb-4 overflow-x-auto no-scrollbar py-1">
+                    <div onclick="setQuery('Step-by-step solve: ')" class="chip flex-none px-4 py-2 bg-blue-50 border border-blue-100 text-blue-700 text-[10px] font-extrabold uppercase rounded-full tracking-wider whitespace-nowrap">Step-by-Step</div>
+                    <div onclick="setQuery('Translate to English: ')" class="chip flex-none px-4 py-2 bg-green-50 border border-green-100 text-green-700 text-[10px] font-extrabold uppercase rounded-full tracking-wider whitespace-nowrap">Translate</div>
+                    <div onclick="setQuery('Summarize this: ')" class="chip flex-none px-4 py-2 bg-orange-50 border border-orange-100 text-orange-700 text-[10px] font-extrabold uppercase rounded-full tracking-wider whitespace-nowrap">Summarize</div>
+                    <div onclick="setQuery('Define the term: ')" class="chip flex-none px-4 py-2 bg-purple-50 border border-purple-100 text-purple-700 text-[10px] font-extrabold uppercase rounded-full tracking-wider whitespace-nowrap">Define</div>
+                </div>
+
                 <!-- Image Feedback -->
                 <div id="image-preview" class="hidden absolute bottom-full mb-4 left-0 bg-white p-2 rounded-2xl border border-slate-200 shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
                     <img id="preview-img" src="" class="h-12 w-12 object-cover rounded-lg" />
-                    <span class="text-[10px] font-bold text-slate-500 pr-4">Image loaded</span>
+                    <span class="text-[10px] font-bold text-slate-500 pr-4">Visual Data Loaded</span>
                     <button onclick="clearImage()" class="p-1.5 text-slate-400 hover:text-red-500">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
@@ -243,9 +264,9 @@
                         class="flex-1 bg-transparent py-3 px-2 outline-none text-slate-800 placeholder:text-slate-400 text-sm font-medium"
                     >
 
-                    <button type="submit" id="submit-btn" class="p-3 md:px-6 rounded-2xl bg-slate-900 text-white font-bold text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all">
-                        <i data-lucide="chevron-right" class="w-5 h-5 md:hidden"></i>
+                    <button type="submit" id="submit-btn" class="p-3 md:px-6 rounded-2xl bg-slate-900 text-white font-bold text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all flex items-center gap-2">
                         <span class="hidden md:block">Solve</span>
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
                     </button>
                 </form>
             </div>
@@ -274,8 +295,8 @@
 
                     <button onclick="saveApiKey()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-[0.2em] shadow-xl shadow-slate-200 active:scale-95">Enable Engine</button>
                     
-                    <div class="flex items-center gap-3 px-2 pt-2">
-                        <i data-lucide="shield" class="w-4 h-4 text-green-500"></i>
+                    <div class="flex items-center gap-3 px-2 pt-2 text-left">
+                        <i data-lucide="shield" class="w-4 h-4 text-green-500 flex-shrink-0"></i>
                         <p class="text-[10px] text-slate-500 font-medium leading-relaxed">Your data stays in this session. Digambar never stores your API key on a server.</p>
                     </div>
                 </div>
@@ -302,18 +323,28 @@
         const previewContainer = document.getElementById('image-preview');
         const keyInput = document.getElementById('api-key-input');
         const keyDot = document.getElementById('key-dot');
-        const historyList = document.getElementById('history-list');
+        const statusPulse = document.getElementById('status-pulse');
+        const statusText = document.getElementById('status-text');
 
         if (apiKey) {
             keyInput.value = apiKey;
             keyDot.className = 'w-2 h-2 bg-green-500 rounded-full';
+            statusPulse.className = 'w-2 h-2 bg-green-500 rounded-full animate-pulse';
         }
         renderHistory();
 
         function toggleSidebar(show) {
-            sidebar.classList.toggle('sidebar-closed', !show);
-            sidebar.classList.toggle('sidebar-open', show);
-            overlay.classList.toggle('hidden', !show);
+            if (show) {
+                sidebar.classList.remove('sidebar-closed');
+                sidebar.classList.add('sidebar-open');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.style.opacity = '1', 10);
+            } else {
+                sidebar.classList.add('sidebar-closed');
+                sidebar.classList.remove('sidebar-open');
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
         }
 
         function toggleSettings(show) { modal.classList.toggle('hidden', !show); }
@@ -321,7 +352,10 @@
         function saveApiKey() {
             apiKey = keyInput.value.trim();
             localStorage.setItem('digambar_api_key', apiKey);
-            if (apiKey) keyDot.className = 'w-2 h-2 bg-green-500 rounded-full';
+            if (apiKey) {
+                keyDot.className = 'w-2 h-2 bg-green-500 rounded-full';
+                statusPulse.className = 'w-2 h-2 bg-green-500 rounded-full animate-pulse';
+            }
             toggleSettings(false);
         }
 
@@ -479,7 +513,7 @@
             if (!history.length) return;
             historyList.innerHTML = history.map(h => `
                 <button onclick="setQuery('${h.title}')" class="w-full text-left p-3 rounded-xl hover:bg-slate-50 transition-all flex flex-col gap-0.5 border border-transparent">
-                    <span class="text-[10px] font-bold text-slate-800 truncate uppercase">${h.title}</span>
+                    <span class="text-[10px] font-bold text-slate-800 truncate uppercase tracking-tight">${h.title}</span>
                     <span class="text-[8px] text-slate-400 font-black">${h.time}</span>
                 </button>`).join('');
         }
