@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Digambar AI - Expert Assistant</title>
+    <title>Digambar AI - Professional Solver</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- KaTeX for Math Rendering -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -18,64 +18,110 @@
         
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            -webkit-tap-highlight-color: transparent;
+            background-color: #f9fafb;
+            overscroll-behavior-y: contain;
         }
 
         .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
+            width: 5px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+            background: #e2e8f0;
             border-radius: 10px;
         }
 
-        .message-animation {
-            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        /* Message Entry Animation */
+        .message-fade {
+            animation: fadeIn 0.4s ease-out forwards;
         }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(12px); }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(16px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Markdown Styling inside bubbles */
+        /* Markdown & Math Styling - Enhanced for Clarity */
         .markdown-body h1, .markdown-body h2, .markdown-body h3 {
-            font-weight: 800;
-            margin-top: 1rem;
-            margin-bottom: 0.5rem;
             color: #0f172a;
+            font-weight: 800;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            line-height: 1.3;
         }
-        .markdown-body h3 { font-size: 1.1rem; }
-        .markdown-body p { margin-bottom: 0.75rem; }
-        .markdown-body ul, .markdown-body ol { 
-            margin-left: 1.25rem; 
+        .markdown-body h3 {
+            font-size: 1.15rem;
+            border-left: 4px solid #2563eb;
+            padding-left: 12px;
+            background: #f8fafc;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            border-radius: 0 8px 8px 0;
+        }
+        .markdown-body p { 
+            margin-bottom: 1rem; 
+            line-height: 1.8; 
+            color: #334155;
+            font-size: 15px;
+        }
+        .markdown-body strong {
+            color: #1e293b;
+            font-weight: 800;
+            background: #eff6ff;
+            padding: 1px 4px;
+            border-radius: 4px;
+        }
+        .markdown-body ul, .markdown-body ol {
             margin-bottom: 1rem;
-            list-style-type: disc;
+            padding-left: 1.5rem;
         }
-        .markdown-body strong { font-weight: 700; }
+        .markdown-body li {
+            margin-bottom: 0.5rem;
+        }
         
+        /* Boxed Formula Style - Premium Look */
         .katex-display {
+            background: white;
+            border: 2px solid #f1f5f9;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 1.5rem 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
             overflow-x: auto;
-            overflow-y: hidden;
-            padding: 8px 0;
-            margin: 0.5rem 0;
+            display: block;
+            text-align: center;
         }
 
-        #mobile-sidebar-overlay {
-            transition: opacity 0.3s ease;
+        /* The Result Box - High Impact Finality */
+        .result-card {
+            background: #f0f9ff;
+            border: 2px solid #0284c7;
+            border-radius: 20px;
+            padding: 28px;
+            margin-top: 2.5rem;
+            box-shadow: 0 15px 25px -5px rgba(2, 132, 199, 0.1);
+            position: relative;
         }
+        .result-card::before {
+            content: "FINAL ANSWER";
+            position: absolute;
+            top: -12px;
+            left: 24px;
+            background: #0284c7;
+            color: white;
+            padding: 3px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3);
+        }
+        .result-card .markdown-body p {
+            color: #0c4a6e;
+            font-weight: 600;
+            font-size: 17px;
+        }
+
         #sidebar {
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .quick-chip {
-            transition: all 0.2s ease;
-        }
-        .quick-chip:active {
-            transform: scale(0.95);
         }
 
         @media (max-width: 768px) {
@@ -84,128 +130,106 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 h-screen overflow-hidden flex flex-col md:flex-row">
+<body class="h-screen overflow-hidden flex flex-col md:flex-row">
 
-    <!-- Mobile Sidebar Overlay -->
-    <div id="mobile-sidebar-overlay" onclick="toggleSidebar(false)" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden md:hidden opacity-0 transition-opacity"></div>
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="sidebar-overlay" onclick="toggleSidebar(false)" class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-40 hidden md:hidden"></div>
 
-    <!-- Sidebar -->
-    <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-white border-r border-slate-200 z-50 transform sidebar-closed md:relative md:transform-none md:flex md:flex-col shrink-0 shadow-2xl md:shadow-none">
-        <div class="p-5 border-b border-slate-200 flex items-center justify-between">
+    <!-- Minimal Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-white border-r border-slate-200 z-50 transform sidebar-closed md:relative md:transform-none md:flex md:flex-col shadow-xl md:shadow-none">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="bg-blue-600 p-2 rounded-xl text-white">
-                    <i data-lucide="brain-circuit" class="w-6 h-6"></i>
+                <div class="bg-slate-900 p-2 rounded-xl text-white">
+                    <i data-lucide="brain-circuit" class="w-5 h-5"></i>
                 </div>
-                <h1 class="text-xl font-extrabold tracking-tight text-slate-800">Digambar AI</h1>
+                <h1 class="text-lg font-extrabold tracking-tight text-slate-800">Digambar</h1>
             </div>
-            <button onclick="toggleSidebar(false)" class="md:hidden p-2 text-slate-400 hover:text-slate-600">
-                <i data-lucide="x"></i>
+            <button onclick="toggleSidebar(false)" class="md:hidden p-2 text-slate-400">
+                <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </div>
         
         <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="history-container">
-            <div class="flex items-center gap-2 mb-4 text-slate-500 text-[10px] font-black uppercase tracking-[0.1em] px-2">
-                <i data-lucide="history" class="w-3 h-3"></i>
-                <span>Activity Timeline</span>
-            </div>
+            <div class="px-2 mb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">History</div>
             <div id="history-list" class="space-y-1">
-                <p class="text-center py-10 text-slate-400 text-xs italic px-4">Your solved problems and chats will appear here.</p>
+                <p class="text-center py-10 text-slate-400 text-xs italic">Empty bank</p>
             </div>
         </div>
 
-        <div class="p-4 border-t border-slate-200 bg-slate-50/50 space-y-2">
-            <button onclick="clearAllChat()" class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 transition-colors text-slate-600 hover:text-red-600 text-sm font-semibold">
-                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                <span>Clear Session</span>
+        <div class="p-4 bg-slate-50 border-t border-slate-100 space-y-2">
+            <button onclick="clearAllChat()" class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white text-slate-500 hover:text-red-500 transition-all text-xs font-bold">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                <span>Reset Session</span>
             </button>
-            <button onclick="toggleSettings(true)" class="w-full flex items-center justify-between p-3 rounded-xl hover:bg-white transition-colors text-slate-600 font-semibold border border-transparent hover:border-slate-200 group text-sm">
+            <button onclick="toggleSettings(true)" class="w-full flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-sm text-slate-700 text-xs font-bold hover:bg-slate-50 transition-all">
                 <div class="flex items-center gap-3">
-                    <i data-lucide="settings" class="w-4 h-4 group-hover:rotate-45 transition-transform duration-300"></i>
-                    <span>Settings</span>
+                    <i data-lucide="settings" class="w-4 h-4"></i>
+                    <span>Control Panel</span>
                 </div>
-                <div id="key-status-dot" class="w-2 h-2 bg-red-500 rounded-full"></div>
+                <div id="key-dot" class="w-2 h-2 bg-red-500 rounded-full"></div>
             </button>
         </div>
     </aside>
 
-    <!-- Main Content Area -->
-    <main class="flex-1 flex flex-col h-full relative min-w-0">
+    <!-- Main Workspace -->
+    <main class="flex-1 flex flex-col h-full min-w-0 bg-slate-50">
         
         <!-- Navbar -->
-        <header class="flex items-center justify-between p-4 bg-white border-b border-slate-200 z-10 sticky top-0 shadow-sm md:shadow-none">
-            <div class="flex items-center gap-3">
-                <button onclick="toggleSidebar(true)" class="md:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-50 rounded-lg">
+        <header class="h-16 flex items-center justify-between px-4 md:px-8 bg-white border-b border-slate-200 sticky top-0 z-10">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar(true)" class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg md:hidden">
                     <i data-lucide="menu"></i>
                 </button>
-                <div class="hidden md:flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-bold border border-blue-100 uppercase tracking-wide">
-                    <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse"></div>
-                    Online
+                <div class="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                    Ready to Solve
                 </div>
-                <h1 class="md:hidden text-lg font-bold">Digambar AI</h1>
             </div>
-            
-            <div class="flex items-center gap-2">
-                <button onclick="window.print()" class="hidden sm:flex p-2 text-slate-500 hover:bg-slate-50 rounded-lg" title="Print/Save PDF">
+            <div class="flex items-center gap-3">
+                <button onclick="window.print()" class="p-2 text-slate-400 hover:text-slate-900 transition-colors hidden sm:block">
                     <i data-lucide="printer" class="w-5 h-5"></i>
                 </button>
-                <button onclick="toggleSettings(true)" class="md:hidden p-2 text-slate-500">
-                    <i data-lucide="settings" class="w-5 h-5"></i>
-                </button>
+                <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold">AI</div>
             </div>
         </header>
 
         <!-- Chat Area -->
-        <div id="chat-window" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar pb-32">
-            <!-- Empty State -->
-            <div id="empty-state" class="h-full flex flex-col items-center justify-center max-w-xl mx-auto text-center space-y-8 py-10">
-                <div class="relative">
-                    <div class="w-24 h-24 bg-blue-600 rounded-[2.5rem] flex items-center justify-center text-white shadow-2xl shadow-blue-200 animate-bounce">
-                        <i data-lucide="sparkles" class="w-12 h-12"></i>
-                    </div>
-                    <div class="absolute -top-2 -right-2 bg-orange-400 text-white text-[10px] font-black px-2 py-1 rounded-full border-4 border-slate-50 uppercase tracking-tighter">New</div>
+        <div id="chat-window" class="flex-1 overflow-y-auto p-4 md:p-12 space-y-12 custom-scrollbar pb-40">
+            <!-- Landing View -->
+            <div id="empty-state" class="h-full flex flex-col items-center justify-center max-w-sm mx-auto text-center space-y-8">
+                <div class="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center text-white shadow-2xl">
+                    <i data-lucide="calculator" class="w-10 h-10"></i>
                 </div>
                 <div>
-                    <h2 class="text-4xl font-extrabold text-slate-800 mb-4 tracking-tight">How can I help you?</h2>
-                    <p class="text-slate-500 text-lg leading-relaxed px-6">
-                        Expert guidance for Math, Science, and Languages. Upload a photo or just say 'Hi'.
+                    <h2 class="text-2xl font-black text-slate-900 mb-2">Academic Intelligence</h2>
+                    <p class="text-slate-500 text-sm leading-relaxed">
+                        Input any complex math, physics or chemistry problem. Snap a photo or <b>paste an image</b> for instant results.
                     </p>
                 </div>
-                <div class="grid grid-cols-2 gap-3 w-full max-w-lg px-4">
-                    <button onclick="setQuery('Solve: 2x + 5 = 15')" class="quick-chip p-4 bg-white rounded-2xl border border-slate-200 shadow-sm text-left hover:border-blue-400 hover:shadow-md transition-all">
-                        <i data-lucide="calculator" class="w-5 h-5 text-blue-500 mb-2"></i>
-                        <p class="text-xs font-bold text-slate-700">Solve Algebra</p>
-                    </button>
-                    <button onclick="setQuery('Write a short essay on Solar Energy')" class="quick-chip p-4 bg-white rounded-2xl border border-slate-200 shadow-sm text-left hover:border-orange-400 hover:shadow-md transition-all">
-                        <i data-lucide="pen-tool" class="w-5 h-5 text-orange-500 mb-2"></i>
-                        <p class="text-xs font-bold text-slate-700">Write Essay</p>
-                    </button>
+                <div class="w-full space-y-2">
+                    <button onclick="setQuery('Solve: 3x^2 - 12x + 9 = 0')" class="w-full p-4 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-600 hover:border-slate-900 transition-all">Algebra Sample</button>
+                    <button onclick="setQuery('Explain the law of universal gravitation')" class="w-full p-4 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-600 hover:border-slate-900 transition-all">Physics Sample</button>
                 </div>
             </div>
-            <div id="messages-list" class="max-w-4xl mx-auto space-y-6"></div>
+            <div id="messages-list" class="max-w-3xl mx-auto space-y-12"></div>
         </div>
 
-        <!-- Sticky Input Area -->
-        <div class="fixed bottom-0 left-0 right-0 md:left-72 p-4 md:p-6 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent">
-            <div class="max-w-4xl mx-auto relative">
+        <!-- Input Controller -->
+        <div class="fixed bottom-0 left-0 right-0 md:left-72 p-4 md:p-8 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent z-30">
+            <div class="max-w-3xl mx-auto relative">
                 
-                <!-- Image Preview Popup -->
-                <div id="image-preview-container" class="hidden absolute bottom-full mb-4 left-0 bg-white p-2 rounded-2xl border border-slate-200 shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2">
-                    <img id="preview-img" src="" class="h-16 w-16 object-cover rounded-xl border border-slate-100" />
-                    <div class="pr-4">
-                        <p class="text-xs font-bold text-slate-700">Attachment Ready</p>
-                        <button onclick="clearImage()" class="text-[10px] text-red-500 hover:underline">Discard</button>
-                    </div>
-                    <i data-lucide="x" class="w-4 h-4 cursor-pointer text-slate-400 hover:text-slate-600" onclick="clearImage()"></i>
+                <!-- Image Feedback -->
+                <div id="image-preview" class="hidden absolute bottom-full mb-4 left-0 bg-white p-2 rounded-2xl border border-slate-200 shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
+                    <img id="preview-img" src="" class="h-12 w-12 object-cover rounded-lg" />
+                    <span class="text-[10px] font-bold text-slate-500 pr-4">Image loaded</span>
+                    <button onclick="clearImage()" class="p-1.5 text-slate-400 hover:text-red-500">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
                 </div>
 
-                <div class="flex items-center gap-2 mb-3 px-2 overflow-x-auto custom-scrollbar no-scrollbar">
-                    <button onclick="setQuery('Translate this to Spanish: ')" class="whitespace-nowrap bg-white border border-slate-200 text-slate-600 text-[10px] font-bold py-1.5 px-3 rounded-full hover:border-blue-300 transition-colors">Translate</button>
-                    <button onclick="setQuery('Summarize this text: ')" class="whitespace-nowrap bg-white border border-slate-200 text-slate-600 text-[10px] font-bold py-1.5 px-3 rounded-full hover:border-blue-300 transition-colors">Summarize</button>
-                    <button onclick="setQuery('Explain the concept of: ')" class="whitespace-nowrap bg-white border border-slate-200 text-slate-600 text-[10px] font-bold py-1.5 px-3 rounded-full hover:border-blue-300 transition-colors">Explain</button>
-                </div>
-
-                <form id="solve-form" class="relative flex items-center bg-white rounded-3xl border border-slate-200 focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-100 transition-all p-1.5 shadow-lg">
-                    <button type="button" onclick="triggerFileUpload()" class="p-3 text-slate-400 hover:text-blue-600 transition-colors" title="Upload Photo">
+                <!-- Input Field -->
+                <form id="solve-form" class="relative flex items-center bg-white rounded-3xl border border-slate-200 focus-within:border-slate-900 transition-all p-2 shadow-2xl shadow-slate-200/50">
+                    <button type="button" onclick="triggerFileUpload()" class="p-3.5 text-slate-400 hover:text-slate-900 transition-colors" title="Snap Problem">
                         <i data-lucide="camera" class="w-6 h-6"></i>
                     </button>
                     
@@ -215,175 +239,93 @@
                         type="text"
                         id="user-input"
                         autocomplete="off"
-                        placeholder="Ask me anything..."
-                        class="flex-1 bg-transparent py-3 md:py-4 px-2 outline-none text-slate-800 placeholder:text-slate-400 text-base"
+                        placeholder="Type, upload, or PASTE a problem..."
+                        class="flex-1 bg-transparent py-3 px-2 outline-none text-slate-800 placeholder:text-slate-400 text-sm font-medium"
                     >
 
-                    <div class="flex items-center gap-1">
-                        <button type="button" id="mic-btn" onclick="toggleVoiceRecognition()" class="p-3 text-slate-400 hover:text-red-500 transition-colors rounded-xl hover:bg-slate-50">
-                            <i data-lucide="mic" class="w-5 h-5"></i>
-                        </button>
-                        <button type="submit" id="submit-btn" class="p-3 md:p-4 rounded-2xl transition-all bg-blue-600 text-white hover:bg-blue-700 shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <i data-lucide="send" class="w-5 h-5"></i>
-                        </button>
-                    </div>
+                    <button type="submit" id="submit-btn" class="p-3 md:px-6 rounded-2xl bg-slate-900 text-white font-bold text-xs uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-50 transition-all">
+                        <i data-lucide="chevron-right" class="w-5 h-5 md:hidden"></i>
+                        <span class="hidden md:block">Solve</span>
+                    </button>
                 </form>
             </div>
         </div>
 
         <!-- Settings Modal -->
-        <div id="settings-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-            <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-8 animate-in zoom-in-95 duration-200">
-                <div class="flex justify-between items-center mb-8">
-                    <div>
-                        <h3 class="text-2xl font-black text-slate-800 tracking-tight">Configuration</h3>
-                        <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Digambar Control Center</p>
-                    </div>
-                    <button onclick="toggleSettings(false)" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full transition-colors">
-                        <i data-lucide="x" class="w-6 h-6"></i>
+        <div id="settings-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 animate-in zoom-in-95">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-black text-slate-900">Control Panel</h3>
+                    <button onclick="toggleSettings(false)" class="p-2 text-slate-400 hover:bg-slate-100 rounded-full">
+                        <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
                 
                 <div class="space-y-6">
-                    <div class="p-5 bg-blue-50/50 rounded-3xl border border-blue-100">
-                        <label class="block text-xs font-black text-blue-900 mb-3 uppercase tracking-wider">Your Gemini API Key</label>
-                        <div class="relative">
-                            <input 
-                                type="password"
-                                id="api-key-input"
-                                placeholder="Paste key here..."
-                                class="w-full bg-white border border-blue-200 rounded-2xl p-4 focus:ring-4 focus:ring-blue-100 outline-none transition-all pr-12 text-sm font-mono"
-                            >
-                            <button type="button" onclick="togglePassword()" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                <i data-lucide="eye" class="w-5 h-5" id="eye-icon"></i>
-                            </button>
-                        </div>
-                        <div class="mt-4 flex gap-2">
-                             <a href="https://aistudio.google.com/app/apikey" target="_blank" class="flex-1 bg-white text-blue-600 text-center py-2.5 rounded-xl border border-blue-200 text-[10px] font-black uppercase tracking-wider hover:bg-blue-50 transition-colors">Get Free Key</a>
-                             <button onclick="saveApiKey()" class="flex-[2] bg-blue-600 text-white py-2.5 rounded-xl font-black text-[10px] uppercase tracking-wider shadow-lg shadow-blue-200 active:scale-95">Save Changes</button>
-                        </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Gemini API Key</label>
+                        <input 
+                            type="password"
+                            id="api-key-input"
+                            placeholder="Paste key here..."
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none focus:border-slate-900 transition-all text-sm font-mono"
+                        >
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                            <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Status</p>
-                            <p id="status-text" class="text-sm font-bold text-red-500">Unconfigured</p>
-                        </div>
-                        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                            <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Model</p>
-                            <p class="text-sm font-bold text-slate-700">Gemini 2.5 Flash</p>
-                        </div>
+                    <button onclick="saveApiKey()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-[0.2em] shadow-xl shadow-slate-200 active:scale-95">Enable Engine</button>
+                    
+                    <div class="flex items-center gap-3 px-2 pt-2">
+                        <i data-lucide="shield" class="w-4 h-4 text-green-500"></i>
+                        <p class="text-[10px] text-slate-500 font-medium leading-relaxed">Your data stays in this session. Digambar never stores your API key on a server.</p>
                     </div>
-
-                    <p class="text-[10px] text-center text-slate-400 font-medium px-4">
-                        Data remains in your browser. Clearing cookies will remove history and API settings.
-                    </p>
                 </div>
             </div>
         </div>
     </main>
 
     <script>
-        // --- State Management ---
         let apiKey = localStorage.getItem('digambar_api_key') || '';
         let currentImage = null; 
         let history = JSON.parse(localStorage.getItem('digambar_history')) || [];
-        let isRecording = false;
-        let recognition = null;
 
-        // Initialize Speech Recognition
-        if ('webkitSpeechRecognition' in window) {
-            recognition = new webkitSpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.lang = 'en-US';
-
-            recognition.onresult = (event) => {
-                const text = event.results[0][0].transcript;
-                userInput.value = text;
-                toggleVoiceRecognition(false);
-            };
-
-            recognition.onerror = () => toggleVoiceRecognition(false);
-            recognition.onend = () => toggleVoiceRecognition(false);
-        }
-
-        // --- Configure Marked.js ---
-        marked.setOptions({
-            breaks: true,
-            gfm: true
-        });
-
-        // --- Init Lucide ---
+        marked.setOptions({ breaks: true, gfm: true });
         lucide.createIcons();
 
-        // --- DOM Elements ---
         const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('mobile-sidebar-overlay');
+        const overlay = document.getElementById('sidebar-overlay');
         const modal = document.getElementById('settings-modal');
         const solveForm = document.getElementById('solve-form');
         const userInput = document.getElementById('user-input');
         const fileInput = document.getElementById('file-input');
         const messagesList = document.getElementById('messages-list');
         const emptyState = document.getElementById('empty-state');
-        const previewContainer = document.getElementById('image-preview-container');
-        const previewImg = document.getElementById('preview-img');
+        const previewContainer = document.getElementById('image-preview');
         const keyInput = document.getElementById('api-key-input');
-        const keyDot = document.getElementById('key-status-dot');
+        const keyDot = document.getElementById('key-dot');
         const historyList = document.getElementById('history-list');
-        const statusText = document.getElementById('status-text');
 
-        // --- Initialization ---
         if (apiKey) {
             keyInput.value = apiKey;
-            keyDot.classList.replace('bg-red-500', 'bg-green-500');
-            statusText.textContent = "Authorized";
-            statusText.classList.replace('text-red-500', 'text-green-500');
+            keyDot.className = 'w-2 h-2 bg-green-500 rounded-full';
         }
         renderHistory();
 
-        // --- Core Functions ---
-
         function toggleSidebar(show) {
-            if (show) {
-                sidebar.classList.remove('sidebar-closed');
-                sidebar.classList.add('sidebar-open');
-                overlay.classList.remove('hidden');
-                setTimeout(() => overlay.classList.add('opacity-100'), 10);
-            } else {
-                sidebar.classList.add('sidebar-closed');
-                sidebar.classList.remove('sidebar-open');
-                overlay.classList.remove('opacity-100');
-                setTimeout(() => overlay.classList.add('hidden'), 300);
-            }
+            sidebar.classList.toggle('sidebar-closed', !show);
+            sidebar.classList.toggle('sidebar-open', show);
+            overlay.classList.toggle('hidden', !show);
         }
 
-        function toggleSettings(show) {
-            modal.classList.toggle('hidden', !show);
-        }
-
-        function togglePassword() {
-            const type = keyInput.type === 'password' ? 'text' : 'password';
-            keyInput.type = type;
-            const iconName = type === 'password' ? 'eye' : 'eye-off';
-            document.getElementById('eye-icon').setAttribute('data-lucide', iconName);
-            lucide.createIcons();
-        }
+        function toggleSettings(show) { modal.classList.toggle('hidden', !show); }
 
         function saveApiKey() {
             apiKey = keyInput.value.trim();
             localStorage.setItem('digambar_api_key', apiKey);
-            if (apiKey) {
-                keyDot.classList.replace('bg-red-500', 'bg-green-500');
-                statusText.textContent = "Authorized";
-                statusText.classList.replace('text-red-500', 'text-green-500');
-            }
+            if (apiKey) keyDot.className = 'w-2 h-2 bg-green-500 rounded-full';
             toggleSettings(false);
         }
 
-        function triggerFileUpload() {
-            fileInput.click();
-        }
+        function triggerFileUpload() { fileInput.click(); }
 
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -394,19 +336,17 @@
             const items = (e.clipboardData || e.originalEvent.clipboardData).items;
             for (const item of items) {
                 if (item.type.indexOf('image') !== -1) {
-                    handleImageFile(item.getAsFile());
+                    const file = item.getAsFile();
+                    handleImageFile(file);
                 }
             }
         });
 
         function handleImageFile(file) {
             const reader = new FileReader();
-            reader.onload = (e) => {
-                currentImage = {
-                    base64: e.target.result,
-                    mimeType: file.type
-                };
-                previewImg.src = e.target.result;
+            reader.onload = (ev) => {
+                currentImage = { base64: ev.target.result, mimeType: file.type };
+                document.getElementById('preview-img').src = ev.target.result;
                 previewContainer.classList.remove('hidden');
             };
             reader.readAsDataURL(file);
@@ -423,58 +363,39 @@
             userInput.focus();
         }
 
-        function toggleVoiceRecognition(forceState) {
-            if (!recognition) {
-                appendMessage('assistant', "Voice recognition is not supported in this browser.");
-                return;
-            }
-            
-            isRecording = forceState !== undefined ? forceState : !isRecording;
-            const micBtn = document.getElementById('mic-btn');
-            
-            if (isRecording) {
-                recognition.start();
-                micBtn.classList.add('text-red-500', 'animate-pulse');
-            } else {
-                recognition.stop();
-                micBtn.classList.remove('text-red-500', 'animate-pulse');
-            }
-        }
-
-        // --- Chat UI Management ---
-
         function appendMessage(role, text, imageBase64 = null) {
             emptyState.classList.add('hidden');
-            const messageId = "msg-" + Date.now();
             const div = document.createElement('div');
-            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} message-animation w-full px-2`;
+            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} message-fade w-full`;
             
             const inner = document.createElement('div');
-            inner.className = `max-w-[92%] md:max-w-[85%] rounded-[1.75rem] p-4 md:p-6 shadow-sm relative group ${
+            inner.className = `max-w-[95%] md:max-w-[85%] rounded-[1.5rem] p-5 md:p-8 relative group ${
                 role === 'user' 
-                ? 'bg-blue-600 text-white rounded-tr-none' 
-                : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'
+                ? 'bg-slate-900 text-white rounded-tr-none shadow-xl' 
+                : 'bg-white border border-slate-100 text-slate-800 rounded-tl-none shadow-sm'
             }`;
 
             if (imageBase64) {
                 const img = document.createElement('img');
                 img.src = imageBase64;
-                img.className = "rounded-2xl mb-4 max-h-72 object-contain border border-blue-400/30 w-full bg-slate-50";
+                img.className = "rounded-2xl mb-6 max-h-80 object-contain border-4 border-slate-50 w-full shadow-lg";
                 inner.appendChild(img);
             }
 
             const contentDiv = document.createElement('div');
-            contentDiv.className = role === 'assistant' ? "markdown-body" : "whitespace-pre-wrap text-[15px] md:text-base leading-relaxed";
+            contentDiv.className = role === 'assistant' ? "markdown-body" : "whitespace-pre-wrap text-base font-semibold";
             
             if (role === 'assistant') {
-                contentDiv.innerHTML = marked.parse(text);
-                
-                // Add Copy Button
-                const copyBtn = document.createElement('button');
-                copyBtn.className = "absolute -bottom-10 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[10px] font-black uppercase text-slate-500 hover:text-blue-600 shadow-sm";
-                copyBtn.innerHTML = `<i data-lucide="copy" class="w-3 h-3"></i> Copy Solution`;
-                copyBtn.onclick = () => copyText(text, copyBtn);
-                inner.appendChild(copyBtn);
+                const lines = text.split('\n');
+                let answerIdx = lines.findIndex(l => l.toLowerCase().includes('final answer'));
+
+                if (answerIdx !== -1) {
+                    const steps = lines.slice(0, answerIdx).join('\n');
+                    const answer = lines.slice(answerIdx).join('\n');
+                    contentDiv.innerHTML = marked.parse(steps) + `<div class="result-card">${marked.parse(answer)}</div>`;
+                } else {
+                    contentDiv.innerHTML = marked.parse(text);
+                }
             } else {
                 contentDiv.textContent = text;
             }
@@ -494,144 +415,73 @@
                 lucide.createIcons();
             }
 
-            scrollToBottom();
+            const win = document.getElementById('chat-window');
+            win.scrollTo({ top: win.scrollHeight, behavior: 'smooth' });
         }
-
-        function copyText(text, btn) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                const originalContent = btn.innerHTML;
-                btn.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-green-500"></i> Copied!`;
-                lucide.createIcons();
-                setTimeout(() => {
-                    btn.innerHTML = originalContent;
-                    lucide.createIcons();
-                }, 2000);
-            } catch (err) {
-                console.error('Copy failed', err);
-            }
-            document.body.removeChild(textArea);
-        }
-
-        function addLoading() {
-            const div = document.createElement('div');
-            div.id = 'loading-bubble';
-            div.className = "flex justify-start message-animation px-2";
-            div.innerHTML = `
-                <div class="bg-white border border-slate-200 rounded-3xl rounded-tl-none p-4 flex items-center gap-3 shadow-sm">
-                    <div class="flex gap-1">
-                        <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
-                        <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                        <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-                    </div>
-                    <span class="text-slate-400 font-black text-[9px] uppercase tracking-widest">Digambar is solving</span>
-                </div>
-            `;
-            messagesList.appendChild(div);
-            scrollToBottom();
-        }
-
-        function removeLoading() {
-            const loader = document.getElementById('loading-bubble');
-            if (loader) loader.remove();
-        }
-
-        function scrollToBottom() {
-            const chatWindow = document.getElementById('chat-window');
-            chatWindow.scrollTo({
-                top: chatWindow.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
-
-        // --- Logic & API ---
 
         async function solveQuery(prompt, imageData) {
-            if (!apiKey) {
-                toggleSettings(true);
-                return;
-            }
-
-            addLoading();
+            if (!apiKey) { toggleSettings(true); return; }
+            
+            const loader = document.createElement('div');
+            loader.id = 'loader';
+            loader.className = "flex justify-start message-fade";
+            loader.innerHTML = `
+                <div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm">
+                    <div class="w-2 h-2 bg-slate-900 rounded-full animate-bounce"></div>
+                    <div class="w-2 h-2 bg-slate-900 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Digambar is calculating</span>
+                </div>`;
+            messagesList.appendChild(loader);
 
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-            
             const payload = {
                 contents: [{
-                    parts: [
-                        { text: `System Instruction: You are 'Digambar AI', an elite expert assistant. 
-                        Expertise: High-level Mathematics, Creative Writing, Language Translation, and Science.
-                        
-                        Tone: Helpful, pedagogical, and professional.
-                        
-                        Formatting Requirements:
-                        1. Structure your answers with Markdown headers (###).
-                        2. ALWAYS use LaTeX for math equations. Inline math goes in single $, block math in $$.
-                        3. For complex problems, provide a 'Concept Summary' at the end.
-                        4. If an image is provided, start by accurately transcribing what is visible.
-                        
-                        Query: ${prompt || "Analyze and explain the mathematical/visual content in the image."}` }
-                    ]
+                    parts: [{ text: `System Instruction: You are 'Digambar AI', a high-precision academic engine. 
+                    Structure your output using professional academic headers (###).
+                    
+                    FORMATTING RULES:
+                    1. Use LaTeX for ALL math ($ for inline, $$ for display).
+                    2. BOLD all key concepts, laws, and final variables when they first appear.
+                    3. Use lists for steps.
+                    4. ALWAYS use display math ($$ ... $$) for standalone formulas so they are boxed by the UI.
+                    5. CRITICAL: End with a section titled "### Final Answer:" followed by the concise final result.
+                    
+                    Problem: ${prompt || "Provide a detailed solution for the attached problem."}` }]
                 }]
             };
 
             if (imageData) {
-                payload.contents[0].parts.push({
-                    inlineData: {
-                        mimeType: imageData.mimeType,
-                        data: imageData.base64.split(',')[1]
-                    }
-                });
+                payload.contents[0].parts.push({ inlineData: { mimeType: imageData.mimeType, data: imageData.base64.split(',')[1] } });
             }
 
             try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) throw new Error("API call failed.");
-
+                const response = await fetch(url, { method: 'POST', body: JSON.stringify(payload) });
                 const data = await response.json();
-                const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I was unable to process this request.";
-                
-                removeLoading();
-                appendMessage('assistant', aiText);
-                updateHistory(prompt || "Visual Query");
-
+                const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                document.getElementById('loader').remove();
+                appendMessage('assistant', aiText || "Error parsing response.");
+                updateHistory(prompt || "Visual Solve");
             } catch (err) {
-                removeLoading();
-                appendMessage('assistant', "❌ **System Error:** Connection to Digambar Brain failed. Ensure your API Key is correct and your internet is active.");
+                document.getElementById('loader').remove();
+                appendMessage('assistant', "❌ Connection Error. Check your Control Panel.");
             }
         }
 
         function updateHistory(title) {
-            const cleanTitle = title.replace(/[#*`]/g, ''); 
-            const item = {
-                id: Date.now(),
-                title: cleanTitle.length > 35 ? cleanTitle.substring(0, 35) + "..." : cleanTitle,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            };
-            
-            history.unshift(item);
-            if (history.length > 20) history.pop(); // Keep history manageable
+            const clean = title.replace(/[#*`$]/g, '').substring(0, 30) + "...";
+            history.unshift({ id: Date.now(), title: clean, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) });
+            if (history.length > 15) history.pop();
             localStorage.setItem('digambar_history', JSON.stringify(history));
             renderHistory();
         }
 
         function renderHistory() {
-            if (history.length === 0) return;
+            if (!history.length) return;
             historyList.innerHTML = history.map(h => `
-                <button onclick="setQuery('${h.title}')" class="w-full text-left p-4 rounded-2xl hover:bg-slate-50 transition-colors group flex flex-col gap-1 border border-transparent hover:border-slate-100">
-                    <span class="text-xs font-extrabold text-slate-700 truncate w-full">${h.title}</span>
-                    <span class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">${h.time}</span>
-                </button>
-            `).join('');
+                <button onclick="setQuery('${h.title}')" class="w-full text-left p-3 rounded-xl hover:bg-slate-50 transition-all flex flex-col gap-0.5 border border-transparent">
+                    <span class="text-[10px] font-bold text-slate-800 truncate uppercase">${h.title}</span>
+                    <span class="text-[8px] text-slate-400 font-black">${h.time}</span>
+                </button>`).join('');
         }
 
         function clearAllChat() {
@@ -640,32 +490,17 @@
             history = [];
             localStorage.removeItem('digambar_history');
             renderHistory();
-            toggleSidebar(false);
         }
 
-        // --- Event Listeners ---
         solveForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const text = userInput.value.trim();
             if (!text && !currentImage) return;
-
-            const tempImage = currentImage ? currentImage.base64 : null;
-            const tempImageData = currentImage;
-
-            appendMessage('user', text, tempImage);
+            appendMessage('user', text, currentImage ? currentImage.base64 : null);
+            const img = currentImage;
             userInput.value = '';
             clearImage();
-
-            solveQuery(text, tempImageData);
-        });
-
-        // Close sidebar on window resize if switching to desktop
-        window.addEventListener('resize', () => {
-            if (window.innerWidth >= 768) {
-                overlay.classList.add('hidden');
-                sidebar.classList.remove('sidebar-open');
-                sidebar.classList.remove('sidebar-closed');
-            }
+            solveQuery(text, img);
         });
     </script>
 </body>
